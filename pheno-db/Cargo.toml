@@ -7,3 +7,4 @@ edition.workspace = true
 pheno-core = { path = "../pheno-core" }
 rusqlite = { version = "0.31", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1"

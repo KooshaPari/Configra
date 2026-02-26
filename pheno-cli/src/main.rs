@@ -39,6 +39,18 @@ enum Commands {
         #[command(subcommand)]
         cmd: VersionCmd,
     },
+    /// Stage management
+    Stage {
+        #[command(subcommand)]
+        cmd: StageCmd,
+    },
+    /// Promote a flag to a new stage
+    Promote {
+        /// Flag name
+        name: String,
+        /// Target stage code (SP, POC, IP, A, FP, B, EP, CN, RC, GA, LTS, HF, SS, DEP, AR, EOL)
+        target_stage: String,
+    },
     /// Show status overview
     Status,
     /// Interactive TUI mode
@@ -54,7 +66,15 @@ enum FlagCmd {
         name: String,
         #[arg(short, long, default_value = "")]
         description: String,
+        #[arg(long, default_value = "SP")]
+        stage: String,
+        #[arg(long, default_value = "F")]
+        class: String,
+        #[arg(long, value_delimiter = ',', default_value = "dev")]
+        channel: Vec<String>,
     },
+    /// List flags that should be retired (past their retire_at_stage)
+    Audit,
 }
 
 #[derive(Subcommand)]
@@ -94,6 +114,12 @@ enum VersionCmd {
     },
 }
 
+#[derive(Subcommand)]
+enum StageCmd {
+    /// Show current repo stage from build info
+    Show,
+}
+
 fn db_path(repo: &Option<PathBuf>) -> PathBuf {
     let base = repo
         .clone()
@@ -119,6 +145,8 @@ fn main() {
         Commands::Config { cmd } => handle_config(&cli.repo, cmd),
         Commands::Secrets { cmd } => handle_secrets(&cli.repo, cmd),
         Commands::Version { cmd } => handle_version(&cli.repo, cmd),
+        Commands::Stage { cmd } => handle_stage(cmd),
+        Commands::Promote { name, target_stage } => handle_promote(&cli.repo, name, target_stage),
         Commands::Status => handle_status(&cli.repo),
         Commands::Tui => tui::run(&cli.repo).unwrap_or_else(|e| {
             eprintln!("TUI error: {e}");
@@ -136,12 +164,15 @@ fn handle_flags(repo: &Option<PathBuf>, cmd: FlagCmd) {
                 println!("No flags.");
                 return;
             }
-            println!("{:<30} {:<10} {}", "NAME", "ENABLED", "DESCRIPTION");
+            println!("{:<30} {:<10} {:<6} {:<6} {:<20} {}", "NAME", "ENABLED", "STAGE", "CLASS", "CHANNELS", "DESCRIPTION");
             for f in flags {
                 println!(
-                    "{:<30} {:<10} {}",
+                    "{:<30} {:<10} {:<6} {:<6} {:<20} {}",
                     f.name,
                     if f.enabled { "yes" } else { "no" },
+                    f.stage,
+                    f.transience_class,
+                    f.channel.join(","),
                     f.description
                 );
             }
@@ -153,6 +184,10 @@ fn handle_flags(repo: &Option<PathBuf>, cmd: FlagCmd) {
                 namespace: NS.to_string(),
                 description: String::new(),
                 updated_at: Utc::now(),
+                stage: "SP".to_string(),
+                transience_class: "F".to_string(),
+                channel: vec!["dev".to_string()],
+                retire_at_stage: None,
             });
             flag.enabled = true;
             flag.updated_at = Utc::now();
@@ -169,16 +204,46 @@ fn handle_flags(repo: &Option<PathBuf>, cmd: FlagCmd) {
             db.set_flag(&flag).unwrap();
             println!("Disabled flag: {name}");
         }
-        FlagCmd::Create { name, description } => {
+        FlagCmd::Create { name, description, stage, class, channel } => {
+            // Validate stage and class
+            if stage.parse::<Stage>().is_err() {
+                eprintln!("Invalid stage: {stage}");
+                std::process::exit(1);
+            }
+            if class.parse::<TransienceClass>().is_err() {
+                eprintln!("Invalid transience class: {class} (use F, C, or X)");
+                std::process::exit(1);
+            }
             let flag = FeatureFlag {
                 name: name.clone(),
                 enabled: false,
                 namespace: NS.to_string(),
                 description,
                 updated_at: Utc::now(),
+                stage,
+                transience_class: class,
+                channel,
+                retire_at_stage: Some("GA".to_string()),
             };
             db.set_flag(&flag).unwrap();
             println!("Created flag: {name}");
+        }
+        FlagCmd::Audit => {
+            let flags = db.audit_flags(NS).unwrap();
+            if flags.is_empty() {
+                println!("No flags past their retirement stage.");
+                return;
+            }
+            println!("{:<30} {:<6} {:<10} {}", "NAME", "STAGE", "RETIRE_AT", "DESCRIPTION");
+            for f in flags {
+                println!(
+                    "{:<30} {:<6} {:<10} {}",
+                    f.name,
+                    f.stage,
+                    f.retire_at_stage.as_deref().unwrap_or("-"),
+                    f.description
+                );
+            }
         }
     }
 }
@@ -342,6 +407,25 @@ fn handle_version(repo: &Option<PathBuf>, cmd: VersionCmd) {
     }
 }
 
+fn handle_stage(cmd: StageCmd) {
+    match cmd {
+        StageCmd::Show => {
+            println!("Build stage   : {}", build_info::HELIOS_STAGE);
+            println!("Build channel : {}", build_info::HELIOS_CHANNEL);
+            println!("Build flags   : {}", if build_info::HELIOS_BUILD_FLAGS.is_empty() { "(none)" } else { build_info::HELIOS_BUILD_FLAGS });
+        }
+    }
+}
+
+fn handle_promote(repo: &Option<PathBuf>, name: String, target_stage: String) {
+    let db = open_db(repo);
+    db.promote_flag(NS, &name, &target_stage, &whoami()).unwrap_or_else(|e| {
+        eprintln!("Promote failed: {e}");
+        std::process::exit(1);
+    });
+    println!("Promoted {name} to stage {target_stage}");
+}
+
 fn handle_status(repo: &Option<PathBuf>) {
     let db = open_db(repo);
     let configs = db.list_config(NS).unwrap_or_default();
@@ -353,6 +437,8 @@ fn handle_status(repo: &Option<PathBuf>) {
     println!("Feature flags  : {} ({} enabled)", flags.len(), flags.iter().filter(|f| f.enabled).count());
     println!("Secrets        : {}", secrets.len());
     println!("Tracked repos  : {}", versions.len());
+    println!("Build stage    : {}", build_info::HELIOS_STAGE);
+    println!("Build channel  : {}", build_info::HELIOS_CHANNEL);
 }
 
 fn whoami() -> String {

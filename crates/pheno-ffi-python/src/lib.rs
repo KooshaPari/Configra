@@ -122,6 +122,10 @@ impl FeatureFlags {
             namespace: self.namespace.clone(),
             description,
             updated_at: Utc::now(),
+            stage: "SP".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string()],
+            retire_at_stage: None,
         };
         self.db.lock().set_flag(&flag).map_err(to_pyerr)
     }
@@ -134,6 +138,10 @@ impl FeatureFlags {
             namespace: self.namespace.clone(),
             description: String::new(),
             updated_at: Utc::now(),
+            stage: "SP".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string()],
+            retire_at_stage: None,
         });
         flag.enabled = true;
         flag.updated_at = Utc::now();

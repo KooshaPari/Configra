@@ -77,6 +77,10 @@ pub extern "C" fn pheno_flag_enable(db: *const Database, name: *const c_char) ->
         namespace: NS.to_string(),
         description: String::new(),
         updated_at: Utc::now(),
+        stage: "SP".to_string(),
+        transience_class: "F".to_string(),
+        channel: vec!["dev".to_string()],
+        retire_at_stage: None,
     });
     flag.enabled = true;
     flag.updated_at = Utc::now();
