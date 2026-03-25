@@ -491,3 +491,371 @@ impl VersionStore for Database {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_db() -> Result<Database> {
+        let path = std::path::PathBuf::from(":memory:");
+        Database::open(&path)
+    }
+
+    #[test]
+    fn test_database_open() {
+        let db = test_db();
+        assert!(db.is_ok());
+    }
+
+    #[test]
+    fn test_set_and_get_config() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let entry = ConfigEntry {
+            key: "api_url".to_string(),
+            value: "https://api.example.com".to_string(),
+            value_type: ValueType::String,
+            namespace: "app".to_string(),
+            updated_at: now,
+            updated_by: "admin".to_string(),
+        };
+
+        db.set_config(&entry)?;
+        let retrieved = db.get_config("app", "api_url")?;
+
+        assert_eq!(retrieved.key, entry.key);
+        assert_eq!(retrieved.value, entry.value);
+        assert_eq!(retrieved.namespace, entry.namespace);
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_nonexistent_config() -> Result<()> {
+        let db = test_db()?;
+        let result = db.get_config("app", "nonexistent");
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_list_config() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+
+        let entry1 = ConfigEntry {
+            key: "key1".to_string(),
+            value: "value1".to_string(),
+            value_type: ValueType::String,
+            namespace: "app".to_string(),
+            updated_at: now,
+            updated_by: "admin".to_string(),
+        };
+
+        let entry2 = ConfigEntry {
+            key: "key2".to_string(),
+            value: "value2".to_string(),
+            value_type: ValueType::Int,
+            namespace: "app".to_string(),
+            updated_at: now,
+            updated_by: "admin".to_string(),
+        };
+
+        db.set_config(&entry1)?;
+        db.set_config(&entry2)?;
+
+        let list = db.list_config("app")?;
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].key, "key1");
+        assert_eq!(list[1].key, "key2");
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_config() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let entry = ConfigEntry {
+            key: "to_delete".to_string(),
+            value: "value".to_string(),
+            value_type: ValueType::String,
+            namespace: "app".to_string(),
+            updated_at: now,
+            updated_by: "admin".to_string(),
+        };
+
+        db.set_config(&entry)?;
+        db.delete_config("app", "to_delete")?;
+
+        let result = db.get_config("app", "to_delete");
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_audit_log() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let entry = ConfigEntry {
+            key: "config_key".to_string(),
+            value: "value1".to_string(),
+            value_type: ValueType::String,
+            namespace: "app".to_string(),
+            updated_at: now,
+            updated_by: "admin".to_string(),
+        };
+
+        db.set_config(&entry)?;
+
+        let log = db.audit_log("app", "config_key")?;
+        assert_eq!(log.len(), 1);
+        assert_eq!(log[0].new_value, "value1");
+        assert_eq!(log[0].old_value, None);
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_and_get_flag() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let flag = FeatureFlag {
+            name: "new_feature".to_string(),
+            enabled: true,
+            namespace: "app".to_string(),
+            description: "A new feature".to_string(),
+            updated_at: now,
+            stage: "B".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string()],
+            retire_at_stage: Some("GA".to_string()),
+        };
+
+        db.set_flag(&flag)?;
+        let retrieved = db.get_flag("app", "new_feature")?;
+
+        assert_eq!(retrieved.name, flag.name);
+        assert_eq!(retrieved.enabled, flag.enabled);
+        assert_eq!(retrieved.stage, flag.stage);
+        Ok(())
+    }
+
+    #[test]
+    fn test_list_flags() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+
+        let flag1 = FeatureFlag {
+            name: "feature1".to_string(),
+            enabled: true,
+            namespace: "app".to_string(),
+            description: "Feature 1".to_string(),
+            updated_at: now,
+            stage: "A".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string()],
+            retire_at_stage: None,
+        };
+
+        let flag2 = FeatureFlag {
+            name: "feature2".to_string(),
+            enabled: false,
+            namespace: "app".to_string(),
+            description: "Feature 2".to_string(),
+            updated_at: now,
+            stage: "SP".to_string(),
+            transience_class: "C".to_string(),
+            channel: vec!["staging".to_string()],
+            retire_at_stage: None,
+        };
+
+        db.set_flag(&flag1)?;
+        db.set_flag(&flag2)?;
+
+        let list = db.list_flags("app")?;
+        assert_eq!(list.len(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_flag() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let flag = FeatureFlag {
+            name: "to_delete".to_string(),
+            enabled: true,
+            namespace: "app".to_string(),
+            description: "To delete".to_string(),
+            updated_at: now,
+            stage: "A".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string()],
+            retire_at_stage: None,
+        };
+
+        db.set_flag(&flag)?;
+        db.delete_flag("app", "to_delete")?;
+
+        let result = db.get_flag("app", "to_delete");
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_promote_flag() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let flag = FeatureFlag {
+            name: "feature".to_string(),
+            enabled: true,
+            namespace: "app".to_string(),
+            description: "A feature".to_string(),
+            updated_at: now,
+            stage: "A".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string()],
+            retire_at_stage: None,
+        };
+
+        db.set_flag(&flag)?;
+        db.promote_flag("app", "feature", "B", "admin")?;
+
+        let promoted = db.get_flag("app", "feature")?;
+        assert_eq!(promoted.stage, "B");
+        Ok(())
+    }
+
+    #[test]
+    fn test_promote_flag_backward_fails() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let flag = FeatureFlag {
+            name: "feature".to_string(),
+            enabled: true,
+            namespace: "app".to_string(),
+            description: "A feature".to_string(),
+            updated_at: now,
+            stage: "GA".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string()],
+            retire_at_stage: None,
+        };
+
+        db.set_flag(&flag)?;
+        let result = db.promote_flag("app", "feature", "B", "admin");
+
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_and_get_secret() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let secret = SecretEntry {
+            key: "db_password".to_string(),
+            encrypted_value: vec![1, 2, 3, 4],
+            nonce: vec![5, 6, 7, 8],
+            updated_at: now,
+        };
+
+        db.set_secret(&secret)?;
+        let retrieved = db.get_secret("db_password")?;
+
+        assert_eq!(retrieved.key, secret.key);
+        assert_eq!(retrieved.encrypted_value, secret.encrypted_value);
+        Ok(())
+    }
+
+    #[test]
+    fn test_list_secrets() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+
+        let secret1 = SecretEntry {
+            key: "secret1".to_string(),
+            encrypted_value: vec![1, 2, 3],
+            nonce: vec![4, 5, 6],
+            updated_at: now,
+        };
+
+        let secret2 = SecretEntry {
+            key: "secret2".to_string(),
+            encrypted_value: vec![7, 8, 9],
+            nonce: vec![10, 11, 12],
+            updated_at: now,
+        };
+
+        db.set_secret(&secret1)?;
+        db.set_secret(&secret2)?;
+
+        let list = db.list_secrets()?;
+        assert_eq!(list.len(), 2);
+        assert!(list.contains(&"secret1".to_string()));
+        assert!(list.contains(&"secret2".to_string()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_secret() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let secret = SecretEntry {
+            key: "to_delete".to_string(),
+            encrypted_value: vec![1, 2, 3],
+            nonce: vec![4, 5, 6],
+            updated_at: now,
+        };
+
+        db.set_secret(&secret)?;
+        db.delete_secret("to_delete")?;
+
+        let result = db.get_secret("to_delete");
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_and_get_version() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+        let version = VersionInfo {
+            repo: "my-repo".to_string(),
+            our_version: "1.2.3".to_string(),
+            upstream_version: "1.2.4".to_string(),
+            synced_at: now,
+        };
+
+        db.set_version(&version)?;
+        let retrieved = db.get_version("my-repo")?;
+
+        assert_eq!(retrieved.repo, version.repo);
+        assert_eq!(retrieved.our_version, version.our_version);
+        Ok(())
+    }
+
+    #[test]
+    fn test_list_versions() -> Result<()> {
+        let db = test_db()?;
+        let now = Utc::now();
+
+        let version1 = VersionInfo {
+            repo: "repo1".to_string(),
+            our_version: "1.0.0".to_string(),
+            upstream_version: "1.0.1".to_string(),
+            synced_at: now,
+        };
+
+        let version2 = VersionInfo {
+            repo: "repo2".to_string(),
+            our_version: "2.0.0".to_string(),
+            upstream_version: "2.0.1".to_string(),
+            synced_at: now,
+        };
+
+        db.set_version(&version1)?;
+        db.set_version(&version2)?;
+
+        let list = db.list_versions()?;
+        assert_eq!(list.len(), 2);
+        Ok(())
+    }
+}

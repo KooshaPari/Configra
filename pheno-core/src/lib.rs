@@ -314,3 +314,247 @@ pub mod build_info {
     pub const HELIOS_CHANNEL: &str = env_or!("HELIOS_CHANNEL", "dev");
     pub const HELIOS_BUILD_FLAGS: &str = env_or!("HELIOS_BUILD_FLAGS", "");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_value_type_display() {
+        assert_eq!(ValueType::String.to_string(), "string");
+        assert_eq!(ValueType::Int.to_string(), "int");
+        assert_eq!(ValueType::Float.to_string(), "float");
+        assert_eq!(ValueType::Bool.to_string(), "bool");
+        assert_eq!(ValueType::Json.to_string(), "json");
+    }
+
+    #[test]
+    fn test_value_type_from_str() {
+        assert_eq!(ValueType::from_str("string").unwrap(), ValueType::String);
+        assert_eq!(ValueType::from_str("int").unwrap(), ValueType::Int);
+        assert_eq!(ValueType::from_str("float").unwrap(), ValueType::Float);
+        assert_eq!(ValueType::from_str("bool").unwrap(), ValueType::Bool);
+        assert_eq!(ValueType::from_str("json").unwrap(), ValueType::Json);
+    }
+
+    #[test]
+    fn test_value_type_from_str_invalid() {
+        assert!(ValueType::from_str("invalid").is_err());
+        assert!(ValueType::from_str("").is_err());
+    }
+
+    #[test]
+    fn test_stage_all_constant() {
+        assert_eq!(Stage::ALL.len(), 16);
+        assert_eq!(Stage::ALL[0], Stage::SP);
+        assert_eq!(Stage::ALL[15], Stage::EOL);
+    }
+
+    #[test]
+    fn test_stage_ordinal() {
+        assert_eq!(Stage::SP.ordinal(), 0);
+        assert_eq!(Stage::GA.ordinal(), 9);
+        assert_eq!(Stage::EOL.ordinal(), 15);
+    }
+
+    #[test]
+    fn test_stage_is_pre_release() {
+        assert!(Stage::SP.is_pre_release());
+        assert!(Stage::POC.is_pre_release());
+        assert!(Stage::B.is_pre_release());
+        assert!(!Stage::GA.is_pre_release());
+        assert!(!Stage::LTS.is_pre_release());
+        assert!(!Stage::EOL.is_pre_release());
+    }
+
+    #[test]
+    fn test_stage_is_production() {
+        assert!(Stage::GA.is_production());
+        assert!(Stage::LTS.is_production());
+        assert!(Stage::HF.is_production());
+        assert!(!Stage::B.is_production());
+        assert!(!Stage::RC.is_production());
+        assert!(!Stage::EOL.is_production());
+    }
+
+    #[test]
+    fn test_stage_allows_flag_gated() {
+        assert!(Stage::A.allows_flag_gated());
+        assert!(Stage::RC.allows_flag_gated());
+        assert!(!Stage::GA.allows_flag_gated());
+        assert!(!Stage::EOL.allows_flag_gated());
+    }
+
+    #[test]
+    fn test_stage_allows_compile_gated() {
+        assert!(Stage::A.allows_compile_gated());
+        assert!(Stage::B.allows_compile_gated());
+        assert!(!Stage::EP.allows_compile_gated());
+        assert!(!Stage::EOL.allows_compile_gated());
+    }
+
+    #[test]
+    fn test_stage_display() {
+        assert_eq!(Stage::SP.to_string(), "SP");
+        assert_eq!(Stage::GA.to_string(), "GA");
+        assert_eq!(Stage::EOL.to_string(), "EOL");
+    }
+
+    #[test]
+    fn test_stage_from_str() {
+        assert_eq!(Stage::from_str("SP").unwrap(), Stage::SP);
+        assert_eq!(Stage::from_str("GA").unwrap(), Stage::GA);
+        assert_eq!(Stage::from_str("EOL").unwrap(), Stage::EOL);
+    }
+
+    #[test]
+    fn test_stage_from_str_invalid() {
+        assert!(Stage::from_str("XX").is_err());
+        assert!(Stage::from_str("invalid").is_err());
+    }
+
+    #[test]
+    fn test_transience_class_display() {
+        assert_eq!(TransienceClass::F.to_string(), "F");
+        assert_eq!(TransienceClass::C.to_string(), "C");
+        assert_eq!(TransienceClass::X.to_string(), "X");
+    }
+
+    #[test]
+    fn test_transience_class_from_str() {
+        assert_eq!(TransienceClass::from_str("F").unwrap(), TransienceClass::F);
+        assert_eq!(TransienceClass::from_str("C").unwrap(), TransienceClass::C);
+        assert_eq!(TransienceClass::from_str("X").unwrap(), TransienceClass::X);
+    }
+
+    #[test]
+    fn test_transience_class_from_str_invalid() {
+        assert!(TransienceClass::from_str("Z").is_err());
+        assert!(TransienceClass::from_str("invalid").is_err());
+    }
+
+    #[test]
+    fn test_transience_class_valid_at_stage() {
+        // Flag-gatable: valid up to RC
+        assert!(TransienceClass::F.valid_at_stage(Stage::A));
+        assert!(TransienceClass::F.valid_at_stage(Stage::RC));
+        assert!(!TransienceClass::F.valid_at_stage(Stage::GA));
+
+        // Compile-gatable: valid up to Beta
+        assert!(TransienceClass::C.valid_at_stage(Stage::A));
+        assert!(TransienceClass::C.valid_at_stage(Stage::B));
+        assert!(!TransienceClass::C.valid_at_stage(Stage::EP));
+
+        // Channel-exclusive: always valid
+        assert!(TransienceClass::X.valid_at_stage(Stage::SP));
+        assert!(TransienceClass::X.valid_at_stage(Stage::EOL));
+    }
+
+    #[test]
+    fn test_config_entry_creation() {
+        let now = Utc::now();
+        let entry = ConfigEntry {
+            key: "api_key".to_string(),
+            value: "secret123".to_string(),
+            value_type: ValueType::String,
+            namespace: "app".to_string(),
+            updated_at: now,
+            updated_by: "admin".to_string(),
+        };
+
+        assert_eq!(entry.key, "api_key");
+        assert_eq!(entry.value, "secret123");
+        assert_eq!(entry.namespace, "app");
+        assert_eq!(entry.updated_by, "admin");
+    }
+
+    #[test]
+    fn test_feature_flag_creation() {
+        let now = Utc::now();
+        let flag = FeatureFlag {
+            name: "new_feature".to_string(),
+            enabled: true,
+            namespace: "app".to_string(),
+            description: "New experimental feature".to_string(),
+            updated_at: now,
+            stage: "B".to_string(),
+            transience_class: "F".to_string(),
+            channel: vec!["dev".to_string(), "staging".to_string()],
+            retire_at_stage: Some("GA".to_string()),
+        };
+
+        assert_eq!(flag.name, "new_feature");
+        assert!(flag.enabled);
+        assert_eq!(flag.namespace, "app");
+        assert_eq!(flag.channel.len(), 2);
+        assert_eq!(flag.retire_at_stage, Some("GA".to_string()));
+    }
+
+    #[test]
+    fn test_secret_entry_creation() {
+        let now = Utc::now();
+        let secret = SecretEntry {
+            key: "db_password".to_string(),
+            encrypted_value: vec![1, 2, 3, 4],
+            nonce: vec![5, 6, 7, 8],
+            updated_at: now,
+        };
+
+        assert_eq!(secret.key, "db_password");
+        assert_eq!(secret.encrypted_value.len(), 4);
+        assert_eq!(secret.nonce.len(), 4);
+    }
+
+    #[test]
+    fn test_version_info_creation() {
+        let now = Utc::now();
+        let version = VersionInfo {
+            repo: "my-repo".to_string(),
+            our_version: "1.2.3".to_string(),
+            upstream_version: "1.2.4".to_string(),
+            synced_at: now,
+        };
+
+        assert_eq!(version.repo, "my-repo");
+        assert_eq!(version.our_version, "1.2.3");
+        assert_eq!(version.upstream_version, "1.2.4");
+    }
+
+    #[test]
+    fn test_audit_record_creation() {
+        let now = Utc::now();
+        let record = AuditRecord {
+            id: 1,
+            key: "config_key".to_string(),
+            namespace: "app".to_string(),
+            old_value: Some("old_value".to_string()),
+            new_value: "new_value".to_string(),
+            changed_by: "user".to_string(),
+            changed_at: now,
+        };
+
+        assert_eq!(record.id, 1);
+        assert_eq!(record.key, "config_key");
+        assert_eq!(record.old_value, Some("old_value".to_string()));
+        assert_eq!(record.new_value, "new_value".to_string());
+    }
+
+    #[test]
+    fn test_stage_transition_creation() {
+        let now = Utc::now();
+        let transition = StageTransition {
+            id: 1,
+            flag_name: "new_feature".to_string(),
+            from_stage: "B".to_string(),
+            to_stage: "GA".to_string(),
+            transitioned_at: now,
+            transitioned_by: "admin".to_string(),
+        };
+
+        assert_eq!(transition.id, 1);
+        assert_eq!(transition.flag_name, "new_feature");
+        assert_eq!(transition.from_stage, "B");
+        assert_eq!(transition.to_stage, "GA");
+    }
+}
