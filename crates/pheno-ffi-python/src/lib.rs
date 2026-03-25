@@ -1,3 +1,8 @@
+//! Python bindings (PyO3) for Phenotype configuration.
+
+#![allow(clippy::useless_conversion)] // PyO3 `#[pymethods]` + `PyResult`: spurious on Rust 1.93.
+#![allow(clippy::type_complexity)] // Audit/config rows use explicit tuples for the Python API.
+
 use chrono::Utc;
 use pheno_core::*;
 use pheno_db::Database;
