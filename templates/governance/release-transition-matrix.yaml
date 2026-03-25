@@ -1,0 +1,44 @@
+version: 1
+description: Allowed forward-only transitions between release stages.
+
+stages:
+  - SP
+  - POC
+  - IP
+  - A
+  - FP
+  - B
+  - EP
+  - CN
+  - RC
+  - GA
+  - PROD
+  - LTS
+  - SS
+  - DEP
+  - AR
+  - EOL
+  - HF
+
+transitions:
+  SP: [POC, IP, HF]
+  POC: [IP, A, HF]
+  IP: [A, FP, HF]
+  A: [FP, B, HF]
+  FP: [B, EP, HF]
+  B: [EP, CN, HF]
+  EP: [CN, RC, HF]
+  CN: [RC, HF]
+  RC: [GA, HF]
+  GA: [PROD, LTS, SS, HF]
+  PROD: [LTS, SS, DEP, HF]
+  LTS: [SS, DEP, HF]
+  SS: [DEP, AR, HF]
+  DEP: [AR, EOL]
+  AR: [EOL]
+  EOL: []
+  HF: [RC, GA, PROD, LTS]
+
+blocked_transition_policy:
+  default: deny
+  reason_required: true

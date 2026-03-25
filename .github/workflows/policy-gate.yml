@@ -1,0 +1,10 @@
+name: Policy Gate
+
+on:
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  policy-gate:
+    uses: ./.github/workflows/reusable-policy-gate.yml
+    secrets: inherit

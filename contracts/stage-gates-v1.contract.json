@@ -1,0 +1,57 @@
+{
+  "name": "stage-gates",
+  "version": "1.0.0",
+  "status": "active",
+  "release_channel": "canary-first",
+  "public_surfaces": {
+    "workflow_template": {
+      "path": "templates/stage-gates/v1/stage-gates.yml",
+      "format": "github-actions-workflow",
+      "surface": [
+        "branch-to-stage mapping contract",
+        "gate token contract and job semantics",
+        "language detection contract",
+        "strictness signal support via STAGE_GATES_STRICT"
+      ]
+    },
+    "strictness_signals": {
+      "files": [
+        "templates/.coderabbit.yaml",
+        "templates/stage-gates/v1/stage-gates.yml"
+      ],
+      "surface": [
+        "CodeRabbit severity threshold policy",
+        "stage-gates strict mode wiring"
+      ]
+    },
+    "dependency_fallback_mapping": {
+      "path": "templates/template-sync/dependency-fallbacks.csv",
+      "format": "csv",
+      "surface": [
+        "owner-scoped dependency fallback slug and workspace mapping",
+        "repo-level remediation hints for dependency access failures"
+      ]
+    }
+  },
+  "semver_rules": {
+    "major": [
+      "Any breaking rename/removal of gate tokens, stage labels, or required outputs.",
+      "Behavior changes that invalidate downstream drift detection or rollout tooling."
+    ],
+    "minor": [
+      "Backward-compatible additions of new gates, stages, or optional strictness checks."
+    ],
+    "patch": [
+      "Non-breaking fixes, documentation updates, and internal implementation adjustments."
+    ]
+  },
+  "required_artifacts": [
+    "contracts/stage-gates-v1.contract.json",
+    "templates/stage-gates/v1/stage-gates.yml",
+    "templates/stage-gates.yml",
+    "templates/.coderabbit.yaml",
+    "templates/template-sync/dependency-fallbacks.csv",
+    "docs/guides/stage-gates-contract.md",
+    "scripts/validate_stage_gates_contract.sh"
+  ]
+}

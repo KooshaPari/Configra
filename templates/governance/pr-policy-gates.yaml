@@ -1,0 +1,67 @@
+version: 1
+description: Pull request governance requirements by stage.
+
+default:
+  required_approvals: 1
+  dismiss_stale_reviews: true
+  require_code_owner_reviews: false
+  require_resolved_conversations: true
+  require_linear_history: true
+  require_signed_commits: false
+  allow_draft_merge: false
+
+stages:
+  SP:
+    required_approvals: 0
+  POC:
+    required_approvals: 1
+  IP:
+    required_approvals: 1
+  A:
+    required_approvals: 1
+  FP:
+    required_approvals: 1
+    require_code_owner_reviews: true
+  B:
+    required_approvals: 2
+    require_code_owner_reviews: true
+  EP:
+    required_approvals: 2
+    require_code_owner_reviews: true
+  CN:
+    required_approvals: 2
+    require_code_owner_reviews: true
+  RC:
+    required_approvals: 2
+    require_code_owner_reviews: true
+    require_signed_commits: true
+  GA:
+    required_approvals: 2
+    require_code_owner_reviews: true
+    require_signed_commits: true
+  PROD:
+    required_approvals: 2
+    require_code_owner_reviews: true
+    require_signed_commits: true
+  LTS:
+    required_approvals: 2
+    require_code_owner_reviews: true
+    require_signed_commits: true
+  SS:
+    required_approvals: 2
+    require_code_owner_reviews: true
+  DEP:
+    required_approvals: 1
+    require_code_owner_reviews: true
+  AR:
+    required_approvals: 1
+  EOL:
+    required_approvals: 1
+  HF:
+    required_approvals: 1
+    require_code_owner_reviews: true
+    expedite_window_minutes: 60
+
+strict_mode_overrides:
+  required_approvals_delta: 1
+  require_signed_commits: true

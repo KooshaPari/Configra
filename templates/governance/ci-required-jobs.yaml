@@ -1,0 +1,98 @@
+version: 1
+schema: ci-required-jobs/v1
+
+default_stage: GA
+force_strict_stages:
+  - RC
+  - GA
+  - PROD
+  - LTS
+
+strict_mode:
+  additional_required_jobs:
+    - strictness-signal
+  stage_overrides:
+    RC:
+      additional_required_jobs:
+        - verify-merge-token
+    GA:
+      additional_required_jobs:
+        - verify-merge-token
+    PROD:
+      additional_required_jobs:
+        - verify-merge-token
+    LTS:
+      additional_required_jobs:
+        - verify-merge-token
+
+branch_stage_rules:
+  - stage: SP
+    patterns: ["spike/*"]
+  - stage: POC
+    patterns: ["poc/*"]
+  - stage: IP
+    patterns: ["preview/*", "ip/*"]
+  - stage: A
+    patterns: ["alpha/*"]
+  - stage: FP
+    patterns: ["feature-preview/*", "fp/*"]
+  - stage: B
+    patterns: ["beta/*", "release/beta-*"]
+  - stage: EP
+    patterns: ["release/ep-*", "ep/*"]
+  - stage: CN
+    patterns: ["release/canary-*", "canary/*"]
+  - stage: RC
+    patterns: ["release/*-rc.*", "rc/*", "release/rc-*"]
+  - stage: GA
+    patterns: ["main", "master", "stable", "release/ga-*", "ga/*"]
+  - stage: PROD
+    patterns: ["release/prod-*", "prod/*", "release/*-prod.*"]
+  - stage: LTS
+    patterns: ["release/lts-*", "lts/*", "release/*-lts.*"]
+  - stage: SS
+    patterns: ["ss/*", "steady-state/*", "release/ss-*"]
+  - stage: DEP
+    patterns: ["dep/*", "deprecation/*", "deprecated/*", "release/dep-*"]
+  - stage: AR
+    patterns: ["ar/*", "archive/*", "release/ar-*"]
+  - stage: EOL
+    patterns: ["eol/*", "end-of-life/*", "release/eol-*"]
+  - stage: HF
+    patterns: ["hotfix/*", "hf/*"]
+
+stages:
+  SP:
+    required_jobs: []
+  POC:
+    required_jobs: [format]
+  IP:
+    required_jobs: [format, lint, unit, secrets]
+  A:
+    required_jobs: [format, lint, unit, integration, sast, secrets]
+  FP:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-60, e2e-smoke, perf]
+  B:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-70, e2e-smoke, dep-audit, license, coderabbit]
+  EP:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-75, e2e-smoke, dep-audit, license, coderabbit, gca-review, manual-security]
+  CN:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-80, e2e-smoke, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf]
+  RC:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
+  GA:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
+  PROD:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
+  LTS:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
+  SS:
+    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-80, e2e-smoke, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf]
+  DEP:
+    required_jobs: [format, lint, unit, integration, sast, secrets, dep-audit, license, artifact-checksum]
+  AR:
+    required_jobs: [format, lint, unit, secrets, artifact-checksum]
+  EOL:
+    required_jobs: [format, lint, unit, secrets, dep-audit, license]
+  HF:
+    required_jobs: [format, lint, unit, targeted-regression, verify-merge-token]
