@@ -19,7 +19,7 @@ jobs:
       stage: ${{ steps.detect.outputs.stage }}
       gates: ${{ steps.detect.outputs.gates }}
       lang: ${{ steps.detect-lang.outputs.lang }}
-      strict: ${{ steps.detect-strict.outputs.strict }}
+      strict_mode: ${{ steps.strict-mode.outputs.strict_mode }}
     steps:
       - uses: actions/checkout@v4
 
@@ -100,6 +100,17 @@ jobs:
               f"(global={strict_from_env}, forced={strict_for_stage}, source={source})"
           )
           PY
+
+      - name: Resolve strict mode
+        id: strict-mode
+        run: |
+          strict="${STAGE_GATES_STRICT:-false}"
+          case "$strict" in
+            true|TRUE|1|yes|YES) strict="true" ;;
+            *) strict="false" ;;
+          esac
+          echo "strict_mode=${strict}" >> "$GITHUB_OUTPUT"
+          echo "Stage gate strict mode: ${strict}"
 
       - name: Detect language
         id: detect-lang
@@ -518,12 +529,17 @@ jobs:
           if [ -f Makefile ] && grep -q 'regression' Makefile; then
             make regression
           else
-            echo "No regression target found; running full unit tests as fallback"
+            if [ "${{ needs.detect-stage.outputs.strict_mode }}" = "true" ]; then
+              echo "No regression target found; strict mode enabled, failing."
+              exit 1
+            fi
+            echo "No regression target found; strict mode disabled, running full unit tests fallback"
             case "${{ needs.detect-stage.outputs.lang }}" in
               rust) cargo test --lib ;;
               go) go test ./... ;;
               python) pip install -e ".[test]" && pytest -x ;;
               node) npm ci && npm test ;;
+              *) echo "Unknown language; no fallback test command available" ;;
             esac
 
   strictness-signal:
