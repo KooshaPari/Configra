@@ -1,319 +1,286 @@
 //! Python bindings (PyO3) for Phenotype configuration.
+//!
+//! # Architecture
+//!
+//! This crate follows Hexagonal Architecture principles:
+//!
+//! ```text
+//! ┌─────────────────────────────────────────────────────────┐
+//! │                 ADAPTERS (Outer)                       │
+//! │   PyO3 Python Bindings (Inbound Adapter)                │
+//! └───────────────────────────┬─────────────────────────────┘
+//!                             │ depends on
+//!                             ▼
+//! ┌─────────────────────────────────────────────────────────┐
+//! │                 APPLICATION (Middle)                    │
+//! │         Use Cases, Command/Query Handlers               │
+//! └───────────────────────────┬─────────────────────────────┘
+//!                             │ depends on
+//!                             ▼
+//! ┌─────────────────────────────────────────────────────────┐
+//! │                    DOMAIN (Inner)                      │
+//! │         DTOs, Entity Converters (Pure Types)           │
+//! └─────────────────────────────────────────────────────────┘
+//! ```
+//!
+//! # Modules
+//!
+//! - `domain`: Pure domain types (DTOs, no PyO3 dependencies)
+//! - `application`: Use cases that delegate to pheno-db
+//! - `adapters`: PyO3 Python bindings
 
-#![allow(clippy::useless_conversion)] // PyO3 `#[pymethods]` + `PyResult`: spurious on Rust 1.93.
-#![allow(clippy::type_complexity)] // Audit/config rows use explicit tuples for the Python API.
+pub mod domain;
+pub mod application;
+pub mod adapters;
 
-use chrono::Utc;
-use pheno_core::*;
-use pheno_db::Database;
-use pyo3::exceptions::PyRuntimeError;
-use pyo3::prelude::*;
-use std::path::PathBuf;
-use std::sync::Mutex;
+// Re-export for backward compatibility
+pub use adapters::inbound::python::phenotype_config;
 
-fn to_pyerr(e: pheno_core::Error) -> PyErr {
-    PyRuntimeError::new_err(e.to_string())
-}
+// Legacy module for backward compatibility with existing Python bindings
+// This is a flat adapter that wraps the use cases
+mod legacy {
+    use super::*;
+    use crate::application::use_cases::*;
+    use chrono::Utc;
+    use pheno_core::{ConfigEntry, FeatureFlag, SecretEntry, ValueType};
+    use pheno_db::Database;
+    use pyo3::exceptions::PyRuntimeError;
+    use pyo3::prelude::*;
+    use std::path::PathBuf;
+    use std::sync::Mutex;
 
-struct Db(Mutex<Database>);
-
-impl Db {
-    fn lock(&self) -> std::sync::MutexGuard<'_, Database> {
-        self.0.lock().unwrap()
-    }
-}
-
-fn open_db(path: &str) -> PyResult<Database> {
-    let p = PathBuf::from(path);
-    Database::open(&p).map_err(to_pyerr)
-}
-
-#[pyclass]
-struct PhenoConfig {
-    db: Db,
-    namespace: String,
-}
-
-#[pymethods]
-impl PhenoConfig {
-    #[new]
-    #[pyo3(signature = (db_path, namespace = "default".to_string()))]
-    fn new(db_path: String, namespace: String) -> PyResult<Self> {
-        let db = open_db(&db_path)?;
-        Ok(Self {
-            db: Db(Mutex::new(db)),
-            namespace,
-        })
-    }
-
-    fn get(&self, key: String) -> PyResult<(String, String, String)> {
-        let entry = self
-            .db
-            .lock()
-            .get_config(&self.namespace, &key)
-            .map_err(to_pyerr)?;
-        Ok((entry.key, entry.value, entry.value_type.to_string()))
+    fn to_pyerr(e: pheno_core::Error) -> PyErr {
+        PyRuntimeError::new_err(e.to_string())
     }
 
-    #[pyo3(signature = (key, value, value_type = "string".to_string()))]
-    fn set(&self, key: String, value: String, value_type: String) -> PyResult<()> {
-        let vt: ValueType = value_type.parse().map_err(to_pyerr)?;
-        let entry = ConfigEntry {
-            key,
-            value,
-            value_type: vt,
-            namespace: self.namespace.clone(),
-            updated_at: Utc::now(),
-            updated_by: std::env::var("USER").unwrap_or_else(|_| "python".to_string()),
-        };
-        self.db.lock().set_config(&entry).map_err(to_pyerr)
-    }
+    pub(super) struct Db(pub(super) Mutex<Database>);
 
-    fn list(&self) -> PyResult<Vec<(String, String, String)>> {
-        let entries = self
-            .db
-            .lock()
-            .list_config(&self.namespace)
-            .map_err(to_pyerr)?;
-        Ok(entries
-            .iter()
-            .map(|e| (e.key.clone(), e.value.clone(), e.value_type.to_string()))
-            .collect())
-    }
-
-    fn delete(&self, key: String) -> PyResult<()> {
-        self.db
-            .lock()
-            .delete_config(&self.namespace, &key)
-            .map_err(to_pyerr)
-    }
-
-    fn audit(&self, key: String) -> PyResult<Vec<(i64, Option<String>, String, String, String)>> {
-        let records = self
-            .db
-            .lock()
-            .audit_log(&self.namespace, &key)
-            .map_err(to_pyerr)?;
-        Ok(records
-            .iter()
-            .map(|r| {
-                (
-                    r.id,
-                    r.old_value.clone(),
-                    r.new_value.clone(),
-                    r.changed_by.clone(),
-                    r.changed_at.to_rfc3339(),
-                )
-            })
-            .collect())
-    }
-
-    fn restore(&self, key: String, audit_id: i64) -> PyResult<(String, String)> {
-        let entry = self
-            .db
-            .lock()
-            .restore_config(&self.namespace, &key, audit_id)
-            .map_err(to_pyerr)?;
-        Ok((entry.key, entry.value))
-    }
-}
-
-#[pyclass]
-struct FeatureFlags {
-    db: Db,
-    namespace: String,
-}
-
-#[pymethods]
-impl FeatureFlags {
-    #[new]
-    #[pyo3(signature = (db_path, namespace = "default".to_string()))]
-    fn new(db_path: String, namespace: String) -> PyResult<Self> {
-        let db = open_db(&db_path)?;
-        Ok(Self {
-            db: Db(Mutex::new(db)),
-            namespace,
-        })
-    }
-
-    fn list(&self) -> PyResult<Vec<(String, bool, String)>> {
-        let flags = self
-            .db
-            .lock()
-            .list_flags(&self.namespace)
-            .map_err(to_pyerr)?;
-        Ok(flags
-            .iter()
-            .map(|f| (f.name.clone(), f.enabled, f.description.clone()))
-            .collect())
-    }
-
-    #[pyo3(signature = (name, description = "".to_string()))]
-    fn create(&self, name: String, description: String) -> PyResult<()> {
-        let flag = FeatureFlag {
-            name,
-            enabled: false,
-            namespace: self.namespace.clone(),
-            description,
-            updated_at: Utc::now(),
-            stage: "SP".to_string(),
-            transience_class: "F".to_string(),
-            channel: vec!["dev".to_string()],
-            retire_at_stage: None,
-        };
-        self.db.lock().set_flag(&flag).map_err(to_pyerr)
-    }
-
-    fn enable(&self, name: String) -> PyResult<()> {
-        let db = self.db.lock();
-        let mut flag = db.get_flag(&self.namespace, &name).unwrap_or(FeatureFlag {
-            name,
-            enabled: false,
-            namespace: self.namespace.clone(),
-            description: String::new(),
-            updated_at: Utc::now(),
-            stage: "SP".to_string(),
-            transience_class: "F".to_string(),
-            channel: vec!["dev".to_string()],
-            retire_at_stage: None,
-        });
-        flag.enabled = true;
-        flag.updated_at = Utc::now();
-        db.set_flag(&flag).map_err(to_pyerr)
-    }
-
-    fn disable(&self, name: String) -> PyResult<()> {
-        let db = self.db.lock();
-        let mut flag = db.get_flag(&self.namespace, &name).map_err(to_pyerr)?;
-        flag.enabled = false;
-        flag.updated_at = Utc::now();
-        db.set_flag(&flag).map_err(to_pyerr)
-    }
-
-    fn delete(&self, name: String) -> PyResult<()> {
-        self.db
-            .lock()
-            .delete_flag(&self.namespace, &name)
-            .map_err(to_pyerr)
-    }
-}
-
-#[pyclass]
-struct Secrets {
-    db: Db,
-    encryption_key: Vec<u8>,
-}
-
-#[pymethods]
-impl Secrets {
-    #[new]
-    fn new(db_path: String, hex_key: String) -> PyResult<Self> {
-        let db = open_db(&db_path)?;
-        let encryption_key = hex::decode(&hex_key)
-            .map_err(|e| PyRuntimeError::new_err(format!("invalid hex key: {e}")))?;
-        if encryption_key.len() != 32 {
-            return Err(PyRuntimeError::new_err(
-                "key must be 32 bytes (64 hex chars)",
-            ));
+    impl Db {
+        pub(super) fn lock(&self) -> std::sync::MutexGuard<'_, Database> {
+            self.0.lock().unwrap()
         }
-        Ok(Self {
-            db: Db(Mutex::new(db)),
-            encryption_key,
-        })
     }
 
-    fn set(&self, key: String, plaintext: String) -> PyResult<()> {
-        let (ciphertext, nonce) =
-            pheno_crypto::encrypt(plaintext.as_bytes(), &self.encryption_key).map_err(to_pyerr)?;
-        let entry = SecretEntry {
-            key,
-            encrypted_value: ciphertext,
-            nonce,
-            updated_at: Utc::now(),
-        };
-        self.db.lock().set_secret(&entry).map_err(to_pyerr)
+    pub(super) fn open_db(path: &str) -> PyResult<Database> {
+        let p = PathBuf::from(path);
+        Database::open(&p).map_err(to_pyerr)
     }
 
-    fn get(&self, key: String) -> PyResult<String> {
-        let entry = self.db.lock().get_secret(&key).map_err(to_pyerr)?;
-        let plaintext =
-            pheno_crypto::decrypt(&entry.encrypted_value, &entry.nonce, &self.encryption_key)
-                .map_err(to_pyerr)?;
-        String::from_utf8(plaintext).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    #[pyclass]
+    pub(super) struct PhenoConfig {
+        pub(super) db: Db,
+        pub(super) namespace: String,
     }
 
-    fn list(&self) -> PyResult<Vec<String>> {
-        self.db.lock().list_secrets().map_err(to_pyerr)
-    }
-
-    fn delete(&self, key: String) -> PyResult<()> {
-        self.db.lock().delete_secret(&key).map_err(to_pyerr)
-    }
-}
-
-#[pyclass]
-#[allow(dead_code)]
-struct VersionInfoPy {
-    db: Db,
-}
-
-#[pymethods]
-impl VersionInfoPy {
-    #[new]
-    fn new(db_path: String) -> PyResult<Self> {
-        let db = open_db(&db_path)?;
-        Ok(Self {
-            db: Db(Mutex::new(db)),
-        })
-    }
-
-    fn show(&self) -> PyResult<Vec<(String, String, String, String)>> {
-        let versions = self.db.lock().list_versions().map_err(to_pyerr)?;
-        Ok(versions
-            .iter()
-            .map(|v| {
-                (
-                    v.repo.clone(),
-                    v.our_version.clone(),
-                    v.upstream_version.clone(),
-                    v.synced_at.to_rfc3339(),
-                )
+    #[pymethods]
+    impl PhenoConfig {
+        #[new]
+        #[pyo3(signature = (db_path, namespace = "default".to_string()))]
+        fn new(db_path: String, namespace: String) -> PyResult<Self> {
+            let db = open_db(&db_path)?;
+            Ok(Self {
+                db: Db(Mutex::new(db)),
+                namespace,
             })
-            .collect())
+        }
+
+        fn get(&self, key: String) -> PyResult<(String, String, String)> {
+            let use_case = GetConfig::new(&self.db.lock(), &self.namespace);
+            let entry = use_case.execute(&key).map_err(to_pyerr)?;
+            Ok((entry.key, entry.value, entry.value_type.to_string()))
+        }
+
+        #[pyo3(signature = (key, value, value_type = "string".to_string()))]
+        fn set(&self, key: String, value: String, value_type: String) -> PyResult<()> {
+            let use_case = SetConfig::new(&self.db.lock(), &self.namespace);
+            use_case.execute_with_params(
+                key,
+                value,
+                value_type,
+                std::env::var("USER").unwrap_or_else(|_| "python".to_string()),
+            ).map_err(to_pyerr)
+        }
+
+        fn list(&self) -> PyResult<Vec<(String, String, String)>> {
+            let use_case = ListConfig::new(&self.db.lock(), &self.namespace);
+            let entries = use_case.execute().map_err(to_pyerr)?;
+            Ok(entries
+                .iter()
+                .map(|e| (e.key.clone(), e.value.clone(), e.value_type.to_string()))
+                .collect())
+        }
+
+        fn delete(&self, key: String) -> PyResult<()> {
+            let use_case = DeleteConfig::new(&self.db.lock(), &self.namespace);
+            use_case.execute(&key).map_err(to_pyerr)
+        }
+
+        fn audit(&self, key: String) -> PyResult<Vec<(i64, Option<String>, String, String, String)>> {
+            let use_case = AuditConfig::new(&self.db.lock(), &self.namespace);
+            let records = use_case.execute(&key).map_err(to_pyerr)?;
+            Ok(records
+                .iter()
+                .map(|r| {
+                    (
+                        r.id,
+                        r.old_value.clone(),
+                        r.new_value.clone(),
+                        r.changed_by.clone(),
+                        r.changed_at.to_rfc3339(),
+                    )
+                })
+                .collect())
+        }
+
+        fn restore(&self, key: String, audit_id: i64) -> PyResult<(String, String)> {
+            let use_case = RestoreConfig::new(&self.db.lock(), &self.namespace);
+            let entry = use_case.execute(&key, audit_id).map_err(to_pyerr)?;
+            Ok((entry.key, entry.value))
+        }
     }
 
-    fn bump(&self, repo: String, version: String) -> PyResult<()> {
-        let db = self.db.lock();
-        let mut info = db.get_version(&repo).unwrap_or(pheno_core::VersionInfo {
-            repo: repo.clone(),
-            our_version: "0.0.0".to_string(),
-            upstream_version: String::new(),
-            synced_at: Utc::now(),
-        });
-        info.our_version = version;
-        info.synced_at = Utc::now();
-        db.set_version(&info).map_err(to_pyerr)
+    #[pyclass]
+    pub(super) struct FeatureFlags {
+        pub(super) db: Db,
+        pub(super) namespace: String,
     }
 
-    fn sync(&self, repo: String, upstream: String) -> PyResult<()> {
-        let db = self.db.lock();
-        let mut info = db.get_version(&repo).unwrap_or(pheno_core::VersionInfo {
-            repo: repo.clone(),
-            our_version: "0.0.0".to_string(),
-            upstream_version: String::new(),
-            synced_at: Utc::now(),
-        });
-        info.upstream_version = upstream;
-        info.synced_at = Utc::now();
-        db.set_version(&info).map_err(to_pyerr)
-    }
-}
+    #[pymethods]
+    impl FeatureFlags {
+        #[new]
+        #[pyo3(signature = (db_path, namespace = "default".to_string()))]
+        fn new(db_path: String, namespace: String) -> PyResult<Self> {
+            let db = open_db(&db_path)?;
+            Ok(Self {
+                db: Db(Mutex::new(db)),
+                namespace,
+            })
+        }
 
-#[pymodule]
-fn phenotype_config(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<PhenoConfig>()?;
-    m.add_class::<FeatureFlags>()?;
-    m.add_class::<Secrets>()?;
-    m.add_class::<VersionInfoPy>()?;
-    Ok(())
+        fn list(&self) -> PyResult<Vec<(String, bool, String)>> {
+            let use_case = ListFlags::new(&self.db.lock(), &self.namespace);
+            let flags = use_case.execute().map_err(to_pyerr)?;
+            Ok(flags
+                .iter()
+                .map(|f| (f.name.clone(), f.enabled, f.description.clone()))
+                .collect())
+        }
+
+        #[pyo3(signature = (name, description = "".to_string()))]
+        fn create(&self, name: String, description: String) -> PyResult<()> {
+            let use_case = CreateFlag::new(&self.db.lock(), &self.namespace);
+            use_case.execute_with_params(name, description).map_err(to_pyerr)
+        }
+
+        fn enable(&self, name: String) -> PyResult<()> {
+            let use_case = ToggleFlag::new(&self.db.lock(), &self.namespace);
+            use_case.enable(&name).map_err(to_pyerr)
+        }
+
+        fn disable(&self, name: String) -> PyResult<()> {
+            let use_case = ToggleFlag::new(&self.db.lock(), &self.namespace);
+            use_case.disable(&name).map_err(to_pyerr)
+        }
+
+        fn delete(&self, name: String) -> PyResult<()> {
+            let use_case = DeleteFlag::new(&self.db.lock(), &self.namespace);
+            use_case.execute(&name).map_err(to_pyerr)
+        }
+    }
+
+    #[pyclass]
+    pub(super) struct Secrets {
+        pub(super) db: Db,
+        pub(super) encryption_key: Vec<u8>,
+    }
+
+    #[pymethods]
+    impl Secrets {
+        #[new]
+        fn new(db_path: String, hex_key: String) -> PyResult<Self> {
+            let db = open_db(&db_path)?;
+            let encryption_key = hex::decode(&hex_key)
+                .map_err(|e| PyRuntimeError::new_err(format!("invalid hex key: {e}")))?;
+            if encryption_key.len() != 32 {
+                return Err(PyRuntimeError::new_err(
+                    "key must be 32 bytes (64 hex chars)",
+                ));
+            }
+            Ok(Self {
+                db: Db(Mutex::new(db)),
+                encryption_key,
+            })
+        }
+
+        fn set(&self, key: String, plaintext: String) -> PyResult<()> {
+            let use_case = SetSecret::new(&self.db.lock(), &self.encryption_key);
+            use_case.execute(&key, &plaintext).map_err(to_pyerr)
+        }
+
+        fn get(&self, key: String) -> PyResult<String> {
+            let use_case = GetSecret::new(&self.db.lock(), &self.encryption_key);
+            use_case.execute(&key).map_err(to_pyerr)
+        }
+
+        fn list(&self) -> PyResult<Vec<String>> {
+            let use_case = ListSecrets::new(&self.db.lock());
+            use_case.execute().map_err(to_pyerr)
+        }
+
+        fn delete(&self, key: String) -> PyResult<()> {
+            let use_case = DeleteSecret::new(&self.db.lock());
+            use_case.execute(&key).map_err(to_pyerr)
+        }
+    }
+
+    #[pyclass]
+    pub(super) struct VersionInfoPy {
+        pub(super) db: Db,
+    }
+
+    #[pymethods]
+    impl VersionInfoPy {
+        #[new]
+        fn new(db_path: String) -> PyResult<Self> {
+            let db = open_db(&db_path)?;
+            Ok(Self {
+                db: Db(Mutex::new(db)),
+            })
+        }
+
+        fn show(&self) -> PyResult<Vec<(String, String, String, String)>> {
+            let use_case = ListVersions::new(&self.db.lock());
+            let versions = use_case.execute().map_err(to_pyerr)?;
+            Ok(versions
+                .iter()
+                .map(|v| {
+                    (
+                        v.repo.clone(),
+                        v.our_version.clone(),
+                        v.upstream_version.clone(),
+                        v.synced_at.to_rfc3339(),
+                    )
+                })
+                .collect())
+        }
+
+        fn bump(&self, repo: String, version: String) -> PyResult<()> {
+            let use_case = BumpVersion::new(&self.db.lock());
+            use_case.execute(&repo, &version).map_err(to_pyerr)
+        }
+
+        fn sync(&self, repo: String, upstream: String) -> PyResult<()> {
+            let use_case = SyncVersion::new(&self.db.lock());
+            use_case.execute(&repo, &upstream).map_err(to_pyerr)
+        }
+    }
+
+    #[pymodule]
+    pub fn phenotype_config(m: &Bound<'_, PyModule>) -> PyResult<()> {
+        m.add_class::<PhenoConfig>()?;
+        m.add_class::<FeatureFlags>()?;
+        m.add_class::<Secrets>()?;
+        m.add_class::<VersionInfoPy>()?;
+        Ok(())
+    }
 }
