@@ -1,10 +1,9 @@
-name: Policy Gate
-
-on:
-  pull_request:
-    branches: ["**"]
-
+name: policy-gate
+on: [pull_request]
 jobs:
-  policy-gate:
-    uses: ./.github/workflows/reusable-policy-gate.yml
-    secrets: inherit
+  enforce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce engineering policies
+        run: ./scripts/policy-gate.sh

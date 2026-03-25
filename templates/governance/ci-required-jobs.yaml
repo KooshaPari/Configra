@@ -1,98 +1,55 @@
-version: 1
-schema: ci-required-jobs/v1
-
-default_stage: GA
-force_strict_stages:
-  - RC
-  - GA
-  - PROD
-  - LTS
-
-strict_mode:
-  additional_required_jobs:
-    - strictness-signal
-  stage_overrides:
-    RC:
-      additional_required_jobs:
-        - verify-merge-token
-    GA:
-      additional_required_jobs:
-        - verify-merge-token
-    PROD:
-      additional_required_jobs:
-        - verify-merge-token
-    LTS:
-      additional_required_jobs:
-        - verify-merge-token
-
-branch_stage_rules:
-  - stage: SP
-    patterns: ["spike/*"]
-  - stage: POC
-    patterns: ["poc/*"]
-  - stage: IP
-    patterns: ["preview/*", "ip/*"]
-  - stage: A
-    patterns: ["alpha/*"]
-  - stage: FP
-    patterns: ["feature-preview/*", "fp/*"]
-  - stage: B
-    patterns: ["beta/*", "release/beta-*"]
-  - stage: EP
-    patterns: ["release/ep-*", "ep/*"]
-  - stage: CN
-    patterns: ["release/canary-*", "canary/*"]
-  - stage: RC
-    patterns: ["release/*-rc.*", "rc/*", "release/rc-*"]
-  - stage: GA
-    patterns: ["main", "master", "stable", "release/ga-*", "ga/*"]
-  - stage: PROD
-    patterns: ["release/prod-*", "prod/*", "release/*-prod.*"]
-  - stage: LTS
-    patterns: ["release/lts-*", "lts/*", "release/*-lts.*"]
-  - stage: SS
-    patterns: ["ss/*", "steady-state/*", "release/ss-*"]
-  - stage: DEP
-    patterns: ["dep/*", "deprecation/*", "deprecated/*", "release/dep-*"]
-  - stage: AR
-    patterns: ["ar/*", "archive/*", "release/ar-*"]
-  - stage: EOL
-    patterns: ["eol/*", "end-of-life/*", "release/eol-*"]
-  - stage: HF
-    patterns: ["hotfix/*", "hf/*"]
-
-stages:
-  SP:
-    required_jobs: []
-  POC:
-    required_jobs: [format]
-  IP:
-    required_jobs: [format, lint, unit, secrets]
-  A:
-    required_jobs: [format, lint, unit, integration, sast, secrets]
-  FP:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-60, e2e-smoke, perf]
-  B:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-70, e2e-smoke, dep-audit, license, coderabbit]
-  EP:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-75, e2e-smoke, dep-audit, license, coderabbit, gca-review, manual-security]
-  CN:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-80, e2e-smoke, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf]
-  RC:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
-  GA:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
-  PROD:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
-  LTS:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-85, e2e-full, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf, sbom, artifact-checksum, verify-merge-token]
-  SS:
-    required_jobs: [format, lint, unit, integration, sast, secrets, coverage-80, e2e-smoke, dep-audit, license, coderabbit, gca-review, manual-security, sla-validation, perf]
-  DEP:
-    required_jobs: [format, lint, unit, integration, sast, secrets, dep-audit, license, artifact-checksum]
-  AR:
-    required_jobs: [format, lint, unit, secrets, artifact-checksum]
-  EOL:
-    required_jobs: [format, lint, unit, secrets, dep-audit, license]
-  HF:
-    required_jobs: [format, lint, unit, targeted-regression, verify-merge-token]
+apiVersion: phenotype.governance/v1
+kind: CIRequiredJobs
+metadata:
+  name: phenotype-ci-required-jobs
+spec:
+  tiers: [T0, T1, T2, T3, T4]
+  tier_requirements:
+    T0:
+      jobs: [format, lint, policy-gate]
+    T1:
+      jobs: [format, lint, policy-gate, unit, secrets, dep-audit]
+    T2:
+      jobs: [format, lint, policy-gate, unit, integration, sast, secrets, coverage]
+    T3:
+      jobs: [format, lint, policy-gate, unit, integration, sast, secrets, coverage, e2e, perf, sla-validation, sbom]
+    T4:
+      jobs: [format, lint, policy-gate, unit, integration, sast, secrets, coverage, e2e, perf, sla-validation, sbom, artifact-checksum, manual-security]
+  stage_min_tier:
+    SP: T0
+    POC: T0
+    IP: T1
+    A: T2
+    FP: T2
+    B: T2
+    EP: T3
+    CN: T3
+    RC: T3
+    GA: T3
+    PROD: T4
+    LTS: T3
+    HF: T1
+    SS: T2
+    DEP: T2
+    AR: T1
+    EOL: T0
+  semantic_jobs:
+    - docs-semantic-check
+    - eval-traceability-check
+    - governance-drift-check
+  semantic_required_from_stage:
+    - FP
+    - B
+    - EP
+    - CN
+    - RC
+    - GA
+    - PROD
+    - LTS
+    - SS
+    - DEP
+  global_rules:
+    all_required_jobs_must_pass: true
+    allow_neutral: false
+    max_job_age_hours: 24
+    strict_mode_required_stages: [RC, GA, PROD, LTS]

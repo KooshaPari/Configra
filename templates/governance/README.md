@@ -1,31 +1,17 @@
 # Governance Templates
 
-This directory defines the machine-readable release governance contract for the full funnel:
+Machine-readable governance templates for polyrepo enforcement.
 
-`SP -> POC -> IP -> A -> FP -> B -> EP -> CN -> RC -> GA -> PROD -> LTS -> SS -> DEP -> AR -> EOL`
+## Files
 
-`HF` is a parallel expedited maintenance lane that can re-enter `RC/GA/PROD/LTS`.
+1. `release-transition-matrix.yaml`
+2. `pr-policy-gates.yaml`
+3. `ci-required-jobs.yaml`
+4. `merge-eligibility-token-schema.yaml`
 
-Files:
-- `release-transition-matrix.yaml`: forward-only transition matrix and blocked transition policy.
-- `pr-policy-gates.yaml`: PR governance requirements by stage (approvals, code owners, strict deltas).
-- `ci-required-jobs.yaml`: CI required jobs by stage, branch-to-stage rules, strict-stage overrides.
-- `merge-eligibility-token-schema.yaml`: schema for merge-eligibility attestations/tokens.
+## Intended Usage
 
-## Resolver Scripts
-
-- `scripts/governance/resolve_stage_requirements.py`
-  - Resolves stage + strict mode + required jobs.
-  - Example: `python scripts/governance/resolve_stage_requirements.py --branch release/1.2.0-rc.1`
-
-- `scripts/governance/enforce_policy_gate.py`
-  - Loads and enforces all governance templates.
-  - Emits a merge-eligibility token payload JSON.
-
-## Reusable Workflows
-
-- `templates/reusable-policy-gate.yml`
-- `templates/workflows/issue-merge-token.yml`
-- `templates/workflows/verify-merge-token.yml`
-
-These are intended to be rolled out into `.github/workflows/` for governed repositories.
+1. Policy-gate workflows read transition and PR policy templates.
+2. CI stage-gates map stages to required jobs using CI matrix template.
+3. Merge gateway verifies CI-issued signed eligibility tokens against token schema.
+4. Module/trunk promotions are allowed only when transition matrix permits.

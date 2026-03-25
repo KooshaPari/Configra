@@ -1,44 +1,160 @@
-version: 1
-description: Allowed forward-only transitions between release stages.
-
-stages:
-  - SP
-  - POC
-  - IP
-  - A
-  - FP
-  - B
-  - EP
-  - CN
-  - RC
-  - GA
-  - PROD
-  - LTS
-  - SS
-  - DEP
-  - AR
-  - EOL
-  - HF
-
-transitions:
-  SP: [POC, IP, HF]
-  POC: [IP, A, HF]
-  IP: [A, FP, HF]
-  A: [FP, B, HF]
-  FP: [B, EP, HF]
-  B: [EP, CN, HF]
-  EP: [CN, RC, HF]
-  CN: [RC, HF]
-  RC: [GA, HF]
-  GA: [PROD, LTS, SS, HF]
-  PROD: [LTS, SS, DEP, HF]
-  LTS: [SS, DEP, HF]
-  SS: [DEP, AR, HF]
-  DEP: [AR, EOL]
-  AR: [EOL]
-  EOL: []
-  HF: [RC, GA, PROD, LTS]
-
-blocked_transition_policy:
-  default: deny
-  reason_required: true
+apiVersion: phenotype.governance/v1
+kind: ReleaseTransitionMatrix
+metadata:
+  name: phenotype-release-transition-matrix
+spec:
+  stage_codes: [SP, POC, IP, A, FP, B, EP, CN, RC, GA, PROD, LTS, HF, SS, DEP, AR, EOL]
+  default_path:
+    - SP
+    - POC
+    - IP
+    - A
+    - FP
+    - B
+    - EP
+    - CN
+    - RC
+    - GA
+    - PROD
+    - LTS
+    - SS
+    - DEP
+    - AR
+    - EOL
+  transitions:
+    - from: SP
+      to: [POC]
+      requires:
+        min_approvals: 0
+        min_tier: T0
+    - from: POC
+      to: [IP]
+      requires:
+        min_approvals: 1
+        min_tier: T0
+    - from: IP
+      to: [A]
+      requires:
+        min_approvals: 1
+        min_tier: T1
+    - from: A
+      to: [FP]
+      requires:
+        min_approvals: 1
+        min_tier: T2
+    - from: FP
+      to: [B]
+      requires:
+        min_approvals: 1
+        min_tier: T2
+    - from: B
+      to: [EP]
+      requires:
+        min_approvals: 1
+        min_tier: T2
+    - from: EP
+      to: [CN]
+      requires:
+        min_approvals: 2
+        min_tier: T3
+    - from: CN
+      to: [RC]
+      requires:
+        min_approvals: 2
+        min_tier: T3
+    - from: RC
+      to: [GA]
+      requires:
+        min_approvals: 2
+        min_tier: T3
+        manual_gate: release-manager
+    - from: GA
+      to: [PROD, LTS]
+      requires:
+        min_approvals: 2
+        min_tier: T4
+        manual_gate: release-manager
+    - from: PROD
+      to: [LTS]
+      requires:
+        min_approvals: 2
+        min_tier: T4
+    - from: LTS
+      to: [SS]
+      requires:
+        min_approvals: 1
+        min_tier: T2
+    - from: SS
+      to: [DEP]
+      requires:
+        min_approvals: 1
+        min_tier: T2
+    - from: DEP
+      to: [AR]
+      requires:
+        min_approvals: 1
+        min_tier: T1
+    - from: AR
+      to: [EOL]
+      requires:
+        min_approvals: 1
+        min_tier: T0
+    - from: GA
+      to: [HF]
+      requires:
+        min_approvals: 2
+        min_tier: T1
+    - from: PROD
+      to: [HF]
+      requires:
+        min_approvals: 2
+        min_tier: T1
+    - from: LTS
+      to: [HF]
+      requires:
+        min_approvals: 1
+        min_tier: T1
+    - from: HF
+      to: [GA, PROD, LTS]
+      requires:
+        min_approvals: 2
+        min_tier: T1
+  destination_scopes:
+    module:
+      branch_patterns:
+        - "module/*/sp"
+        - "module/*/poc"
+        - "module/*/ip"
+        - "module/*/alpha"
+        - "module/*/fp"
+        - "module/*/beta"
+        - "module/*/ep"
+        - "module/*/canary"
+        - "module/*/rc"
+        - "module/*/ga"
+        - "module/*/prod"
+        - "module/*/lts"
+    trunk:
+      branch_patterns:
+        - "trunk/sp"
+        - "trunk/poc"
+        - "trunk/ip"
+        - "trunk/alpha"
+        - "trunk/fp"
+        - "trunk/beta"
+        - "trunk/ep"
+        - "trunk/canary"
+        - "trunk/rc"
+        - "trunk/ga"
+        - "trunk/prod"
+        - "trunk/lts"
+  denied_transitions:
+    - from: SP
+      to: PROD
+      reason: "cannot skip validation funnel"
+    - from: POC
+      to: GA
+      reason: "cannot bypass pre-release gates"
+    - from: RC
+      to: LTS
+      reason: "must pass GA before LTS branching"
