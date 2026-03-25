@@ -8,4 +8,16 @@ target/
 .phenotype/
 config.db
 *.key
-worktrees/
+
+
+# AI tool artifacts
+.claude/
+.codex/
+.cursor/
+.gemini/
+.kittify/
+.kilocode/
+.github/prompts/
+.github/copilot-instructions.md
+.claudeignore
+.llmignore
