@@ -21,7 +21,7 @@ fn to_cstring(s: &str) -> *mut c_char {
 
 /// Open a database. Returns an opaque handle. Caller must call `pheno_db_close` when done.
 #[no_mangle]
-pub extern "C" fn pheno_db_open(path: *const c_char) -> *mut Database {
+pub unsafe extern "C" fn pheno_db_open(path: *const c_char) -> *mut Database {
     let p = cstr_to_str(path);
     match Database::open(&PathBuf::from(p)) {
         Ok(db) => Box::into_raw(Box::new(db)),
@@ -31,7 +31,7 @@ pub extern "C" fn pheno_db_open(path: *const c_char) -> *mut Database {
 
 /// Close and free a database handle.
 #[no_mangle]
-pub extern "C" fn pheno_db_close(db: *mut Database) {
+pub unsafe extern "C" fn pheno_db_close(db: *mut Database) {
     if !db.is_null() {
         unsafe { drop(Box::from_raw(db)) };
     }
@@ -39,7 +39,7 @@ pub extern "C" fn pheno_db_close(db: *mut Database) {
 
 /// Free a string returned by any pheno_* function.
 #[no_mangle]
-pub extern "C" fn pheno_string_free(s: *mut c_char) {
+pub unsafe extern "C" fn pheno_string_free(s: *mut c_char) {
     if !s.is_null() {
         unsafe { drop(CString::from_raw(s)) };
     }
@@ -47,7 +47,7 @@ pub extern "C" fn pheno_string_free(s: *mut c_char) {
 
 /// List flags as JSON array. Caller must free returned string.
 #[no_mangle]
-pub extern "C" fn pheno_flag_list(db: *const Database) -> *mut c_char {
+pub unsafe extern "C" fn pheno_flag_list(db: *const Database) -> *mut c_char {
     let db = unsafe { &*db };
     match db.list_flags(NS) {
         Ok(flags) => {
@@ -68,7 +68,7 @@ pub extern "C" fn pheno_flag_list(db: *const Database) -> *mut c_char {
 
 /// Enable a flag by name. Returns 0 on success, -1 on error.
 #[no_mangle]
-pub extern "C" fn pheno_flag_enable(db: *const Database, name: *const c_char) -> i32 {
+pub unsafe extern "C" fn pheno_flag_enable(db: *const Database, name: *const c_char) -> i32 {
     let db = unsafe { &*db };
     let name = cstr_to_str(name);
     let mut flag = db.get_flag(NS, name).unwrap_or(FeatureFlag {
@@ -92,7 +92,7 @@ pub extern "C" fn pheno_flag_enable(db: *const Database, name: *const c_char) ->
 
 /// Disable a flag by name. Returns 0 on success, -1 on error.
 #[no_mangle]
-pub extern "C" fn pheno_flag_disable(db: *const Database, name: *const c_char) -> i32 {
+pub unsafe extern "C" fn pheno_flag_disable(db: *const Database, name: *const c_char) -> i32 {
     let db = unsafe { &*db };
     let name = cstr_to_str(name);
     let mut flag = match db.get_flag(NS, name) {
@@ -109,7 +109,7 @@ pub extern "C" fn pheno_flag_disable(db: *const Database, name: *const c_char) -
 
 /// Get a config value. Caller must free returned string. Returns NULL if not found.
 #[no_mangle]
-pub extern "C" fn pheno_config_get(db: *const Database, key: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn pheno_config_get(db: *const Database, key: *const c_char) -> *mut c_char {
     let db = unsafe { &*db };
     let key = cstr_to_str(key);
     match db.get_config(NS, key) {
@@ -120,7 +120,7 @@ pub extern "C" fn pheno_config_get(db: *const Database, key: *const c_char) -> *
 
 /// Set a config value. Returns 0 on success, -1 on error.
 #[no_mangle]
-pub extern "C" fn pheno_config_set(
+pub unsafe extern "C" fn pheno_config_set(
     db: *const Database,
     key: *const c_char,
     value: *const c_char,
@@ -144,7 +144,7 @@ pub extern "C" fn pheno_config_set(
 
 /// Set an encrypted secret. Returns 0 on success, -1 on error.
 #[no_mangle]
-pub extern "C" fn pheno_secret_set(
+pub unsafe extern "C" fn pheno_secret_set(
     db: *const Database,
     key: *const c_char,
     plaintext: *const c_char,
@@ -176,7 +176,7 @@ pub extern "C" fn pheno_secret_set(
 
 /// Get a decrypted secret. Caller must free returned string. Returns NULL on error.
 #[no_mangle]
-pub extern "C" fn pheno_secret_get(
+pub unsafe extern "C" fn pheno_secret_get(
     db: *const Database,
     key: *const c_char,
     hex_key: *const c_char,
@@ -200,7 +200,7 @@ pub extern "C" fn pheno_secret_get(
 
 /// List versions as JSON array. Caller must free returned string.
 #[no_mangle]
-pub extern "C" fn pheno_version_show(db: *const Database) -> *mut c_char {
+pub unsafe extern "C" fn pheno_version_show(db: *const Database) -> *mut c_char {
     let db = unsafe { &*db };
     match db.list_versions() {
         Ok(versions) => {
