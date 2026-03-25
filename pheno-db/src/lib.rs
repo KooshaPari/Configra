@@ -13,8 +13,7 @@ impl Database {
             std::fs::create_dir_all(parent)
                 .map_err(|e| Error::Database(format!("create dir: {e}")))?;
         }
-        let conn =
-            Connection::open(path).map_err(|e| Error::Database(format!("open: {e}")))?;
+        let conn = Connection::open(path).map_err(|e| Error::Database(format!("open: {e}")))?;
         conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
             .map_err(|e| Error::Database(e.to_string()))?;
         let db = Self { conn };
@@ -85,7 +84,7 @@ impl Database {
             "ALTER TABLE feature_flags ADD COLUMN stage TEXT NOT NULL DEFAULT 'SP';
              ALTER TABLE feature_flags ADD COLUMN transience_class TEXT NOT NULL DEFAULT 'F';
              ALTER TABLE feature_flags ADD COLUMN channel TEXT NOT NULL DEFAULT '[\"dev\"]';
-             ALTER TABLE feature_flags ADD COLUMN retire_at_stage TEXT;"
+             ALTER TABLE feature_flags ADD COLUMN retire_at_stage TEXT;",
         );
 
         Ok(())
@@ -170,7 +169,10 @@ impl ConfigStore for Database {
                 Ok(ConfigEntry {
                     key: row.get(0)?,
                     value: row.get(1)?,
-                    value_type: row.get::<_, String>(2)?.parse().unwrap_or(ValueType::String),
+                    value_type: row
+                        .get::<_, String>(2)?
+                        .parse()
+                        .unwrap_or(ValueType::String),
                     namespace: row.get(3)?,
                     updated_at: parse_dt(&row.get::<_, String>(4)?),
                     updated_by: row.get(5)?,
@@ -273,14 +275,19 @@ impl FlagStore for Database {
                 read_flag_row,
             )
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => Error::NotFound(format!("{namespace}/{name}")),
+                rusqlite::Error::QueryReturnedNoRows => {
+                    Error::NotFound(format!("{namespace}/{name}"))
+                }
                 _ => Error::Database(e.to_string()),
             })
     }
 
     fn list_flags(&self, namespace: &str) -> Result<Vec<FeatureFlag>> {
-        let mut stmt = self.conn
-            .prepare(&format!("SELECT {FLAG_COLS} FROM feature_flags WHERE namespace=?1 ORDER BY name"))
+        let mut stmt = self
+            .conn
+            .prepare(&format!(
+                "SELECT {FLAG_COLS} FROM feature_flags WHERE namespace=?1 ORDER BY name"
+            ))
             .map_err(|e| Error::Database(e.to_string()))?;
         let rows = stmt
             .query_map(params![namespace], read_flag_row)
@@ -354,14 +361,19 @@ impl FlagStore for Database {
     fn audit_flags(&self, namespace: &str) -> Result<Vec<FeatureFlag>> {
         // Return flags whose current stage ordinal >= their retire_at_stage ordinal
         let all = self.list_flags(namespace)?;
-        Ok(all.into_iter().filter(|f| {
-            if let (Ok(current), Some(ref retire_str)) = (f.stage.parse::<Stage>(), &f.retire_at_stage) {
-                if let Ok(retire) = retire_str.parse::<Stage>() {
-                    return current.ordinal() >= retire.ordinal();
+        Ok(all
+            .into_iter()
+            .filter(|f| {
+                if let (Ok(current), Some(ref retire_str)) =
+                    (f.stage.parse::<Stage>(), &f.retire_at_stage)
+                {
+                    if let Ok(retire) = retire_str.parse::<Stage>() {
+                        return current.ordinal() >= retire.ordinal();
+                    }
                 }
-            }
-            false
-        }).collect())
+                false
+            })
+            .collect())
     }
 }
 
@@ -403,7 +415,8 @@ impl SecretStore for Database {
     }
 
     fn list_secrets(&self) -> Result<Vec<String>> {
-        let mut stmt = self.conn
+        let mut stmt = self
+            .conn
             .prepare("SELECT key FROM secrets ORDER BY key")
             .map_err(|e| Error::Database(e.to_string()))?;
         let rows = stmt

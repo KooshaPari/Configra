@@ -1,5 +1,5 @@
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
-use aes_gcm::{Aes256Gcm, AeadCore, Key, Nonce};
+use aes_gcm::{AeadCore, Aes256Gcm, Key, Nonce};
 use pheno_core::{Error, Result};
 
 pub fn generate_key() -> Vec<u8> {

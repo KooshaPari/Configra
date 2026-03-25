@@ -1,3 +1,8 @@
+//! Go/cgo FFI for Phenotype config (`pheno.h`). C callers must pass
+//! pointers that satisfy each function’s documented contract.
+
+#![allow(clippy::missing_safety_doc)]
+
 use chrono::Utc;
 use pheno_core::*;
 use pheno_db::Database;

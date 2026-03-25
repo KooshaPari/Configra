@@ -42,7 +42,11 @@ impl PhenoConfig {
     }
 
     fn get(&self, key: String) -> PyResult<(String, String, String)> {
-        let entry = self.db.lock().get_config(&self.namespace, &key).map_err(to_pyerr)?;
+        let entry = self
+            .db
+            .lock()
+            .get_config(&self.namespace, &key)
+            .map_err(to_pyerr)?;
         Ok((entry.key, entry.value, entry.value_type.to_string()))
     }
 
@@ -61,16 +65,30 @@ impl PhenoConfig {
     }
 
     fn list(&self) -> PyResult<Vec<(String, String, String)>> {
-        let entries = self.db.lock().list_config(&self.namespace).map_err(to_pyerr)?;
-        Ok(entries.iter().map(|e| (e.key.clone(), e.value.clone(), e.value_type.to_string())).collect())
+        let entries = self
+            .db
+            .lock()
+            .list_config(&self.namespace)
+            .map_err(to_pyerr)?;
+        Ok(entries
+            .iter()
+            .map(|e| (e.key.clone(), e.value.clone(), e.value_type.to_string()))
+            .collect())
     }
 
     fn delete(&self, key: String) -> PyResult<()> {
-        self.db.lock().delete_config(&self.namespace, &key).map_err(to_pyerr)
+        self.db
+            .lock()
+            .delete_config(&self.namespace, &key)
+            .map_err(to_pyerr)
     }
 
     fn audit(&self, key: String) -> PyResult<Vec<(i64, Option<String>, String, String, String)>> {
-        let records = self.db.lock().audit_log(&self.namespace, &key).map_err(to_pyerr)?;
+        let records = self
+            .db
+            .lock()
+            .audit_log(&self.namespace, &key)
+            .map_err(to_pyerr)?;
         Ok(records
             .iter()
             .map(|r| {
@@ -86,7 +104,11 @@ impl PhenoConfig {
     }
 
     fn restore(&self, key: String, audit_id: i64) -> PyResult<(String, String)> {
-        let entry = self.db.lock().restore_config(&self.namespace, &key, audit_id).map_err(to_pyerr)?;
+        let entry = self
+            .db
+            .lock()
+            .restore_config(&self.namespace, &key, audit_id)
+            .map_err(to_pyerr)?;
         Ok((entry.key, entry.value))
     }
 }
@@ -110,8 +132,15 @@ impl FeatureFlags {
     }
 
     fn list(&self) -> PyResult<Vec<(String, bool, String)>> {
-        let flags = self.db.lock().list_flags(&self.namespace).map_err(to_pyerr)?;
-        Ok(flags.iter().map(|f| (f.name.clone(), f.enabled, f.description.clone())).collect())
+        let flags = self
+            .db
+            .lock()
+            .list_flags(&self.namespace)
+            .map_err(to_pyerr)?;
+        Ok(flags
+            .iter()
+            .map(|f| (f.name.clone(), f.enabled, f.description.clone()))
+            .collect())
     }
 
     #[pyo3(signature = (name, description = "".to_string()))]
@@ -157,7 +186,10 @@ impl FeatureFlags {
     }
 
     fn delete(&self, name: String) -> PyResult<()> {
-        self.db.lock().delete_flag(&self.namespace, &name).map_err(to_pyerr)
+        self.db
+            .lock()
+            .delete_flag(&self.namespace, &name)
+            .map_err(to_pyerr)
     }
 }
 
@@ -172,10 +204,12 @@ impl Secrets {
     #[new]
     fn new(db_path: String, hex_key: String) -> PyResult<Self> {
         let db = open_db(&db_path)?;
-        let encryption_key =
-            hex::decode(&hex_key).map_err(|e| PyRuntimeError::new_err(format!("invalid hex key: {e}")))?;
+        let encryption_key = hex::decode(&hex_key)
+            .map_err(|e| PyRuntimeError::new_err(format!("invalid hex key: {e}")))?;
         if encryption_key.len() != 32 {
-            return Err(PyRuntimeError::new_err("key must be 32 bytes (64 hex chars)"));
+            return Err(PyRuntimeError::new_err(
+                "key must be 32 bytes (64 hex chars)",
+            ));
         }
         Ok(Self {
             db: Db(Mutex::new(db)),

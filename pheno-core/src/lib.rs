@@ -86,9 +86,22 @@ pub enum Stage {
 
 impl Stage {
     pub const ALL: &'static [Stage] = &[
-        Stage::SP, Stage::POC, Stage::IP, Stage::A, Stage::FP, Stage::B,
-        Stage::EP, Stage::CN, Stage::RC, Stage::GA, Stage::LTS, Stage::HF,
-        Stage::SS, Stage::DEP, Stage::AR, Stage::EOL,
+        Stage::SP,
+        Stage::POC,
+        Stage::IP,
+        Stage::A,
+        Stage::FP,
+        Stage::B,
+        Stage::EP,
+        Stage::CN,
+        Stage::RC,
+        Stage::GA,
+        Stage::LTS,
+        Stage::HF,
+        Stage::SS,
+        Stage::DEP,
+        Stage::AR,
+        Stage::EOL,
     ];
 
     pub fn ordinal(self) -> usize {
@@ -116,14 +129,28 @@ impl Stage {
 
 impl fmt::Display for Stage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Stage::SP => "SP", Stage::POC => "POC", Stage::IP => "IP",
-            Stage::A => "A", Stage::FP => "FP", Stage::B => "B",
-            Stage::EP => "EP", Stage::CN => "CN", Stage::RC => "RC",
-            Stage::GA => "GA", Stage::LTS => "LTS", Stage::HF => "HF",
-            Stage::SS => "SS", Stage::DEP => "DEP", Stage::AR => "AR",
-            Stage::EOL => "EOL",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Stage::SP => "SP",
+                Stage::POC => "POC",
+                Stage::IP => "IP",
+                Stage::A => "A",
+                Stage::FP => "FP",
+                Stage::B => "B",
+                Stage::EP => "EP",
+                Stage::CN => "CN",
+                Stage::RC => "RC",
+                Stage::GA => "GA",
+                Stage::LTS => "LTS",
+                Stage::HF => "HF",
+                Stage::SS => "SS",
+                Stage::DEP => "DEP",
+                Stage::AR => "AR",
+                Stage::EOL => "EOL",
+            }
+        )
     }
 }
 
@@ -131,11 +158,21 @@ impl std::str::FromStr for Stage {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self> {
         match s {
-            "SP" => Ok(Stage::SP), "POC" => Ok(Stage::POC), "IP" => Ok(Stage::IP),
-            "A" => Ok(Stage::A), "FP" => Ok(Stage::FP), "B" => Ok(Stage::B),
-            "EP" => Ok(Stage::EP), "CN" => Ok(Stage::CN), "RC" => Ok(Stage::RC),
-            "GA" => Ok(Stage::GA), "LTS" => Ok(Stage::LTS), "HF" => Ok(Stage::HF),
-            "SS" => Ok(Stage::SS), "DEP" => Ok(Stage::DEP), "AR" => Ok(Stage::AR),
+            "SP" => Ok(Stage::SP),
+            "POC" => Ok(Stage::POC),
+            "IP" => Ok(Stage::IP),
+            "A" => Ok(Stage::A),
+            "FP" => Ok(Stage::FP),
+            "B" => Ok(Stage::B),
+            "EP" => Ok(Stage::EP),
+            "CN" => Ok(Stage::CN),
+            "RC" => Ok(Stage::RC),
+            "GA" => Ok(Stage::GA),
+            "LTS" => Ok(Stage::LTS),
+            "HF" => Ok(Stage::HF),
+            "SS" => Ok(Stage::SS),
+            "DEP" => Ok(Stage::DEP),
+            "AR" => Ok(Stage::AR),
             "EOL" => Ok(Stage::EOL),
             _ => Err(Error::Other(format!("unknown stage: {s}"))),
         }
