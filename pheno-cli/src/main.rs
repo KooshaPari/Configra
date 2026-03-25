@@ -176,8 +176,8 @@ fn handle_flags(repo: &Option<PathBuf>, cmd: FlagCmd) {
                 return;
             }
             println!(
-                "{:<30} {:<10} {:<6} {:<6} {:<20} {}",
-                "NAME", "ENABLED", "STAGE", "CLASS", "CHANNELS", "DESCRIPTION"
+                "{:<30} {:<10} {:<6} {:<6} {:<20} DESCRIPTION",
+                "NAME", "ENABLED", "STAGE", "CLASS", "CHANNELS"
             );
             for f in flags {
                 println!(
@@ -255,8 +255,8 @@ fn handle_flags(repo: &Option<PathBuf>, cmd: FlagCmd) {
                 return;
             }
             println!(
-                "{:<30} {:<6} {:<10} {}",
-                "NAME", "STAGE", "RETIRE_AT", "DESCRIPTION"
+                "{:<30} {:<6} {:<10} DESCRIPTION",
+                "NAME", "STAGE", "RETIRE_AT"
             );
             for f in flags {
                 println!(
@@ -314,10 +314,7 @@ fn handle_config(repo: &Option<PathBuf>, cmd: ConfigCmd) {
                 println!("No audit records for {key}.");
                 return;
             }
-            println!(
-                "{:<6} {:<25} {:<20} {:<20} {}",
-                "ID", "TIME", "OLD", "NEW", "BY"
-            );
+            println!("{:<6} {:<25} {:<20} {:<20} BY", "ID", "TIME", "OLD", "NEW");
             for r in records {
                 println!(
                     "{:<6} {:<25} {:<20} {:<20} {}",
@@ -392,10 +389,7 @@ fn handle_version(repo: &Option<PathBuf>, cmd: VersionCmd) {
                 println!("No version info.");
                 return;
             }
-            println!(
-                "{:<30} {:<15} {:<15} {}",
-                "REPO", "OURS", "UPSTREAM", "SYNCED"
-            );
+            println!("{:<30} {:<15} {:<15} SYNCED", "REPO", "OURS", "UPSTREAM");
             for v in versions {
                 println!(
                     "{:<30} {:<15} {:<15} {}",
