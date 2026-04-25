@@ -1,50 +1,25 @@
-# AGENTS Guide
+# AGENTS.md — Configra
 
-**This project is managed through AgilePlus.**
+Phenotype repository
 
-## AgilePlus Mandate
+## Quick Links
 
-All work MUST be tracked in AgilePlus:
-- Reference: `/Users/kooshapari/CodeProjects/Phenotype/repos/AgilePlus`
-- CLI: `cd /Users/kooshapari/CodeProjects/Phenotype/repos/AgilePlus && agileplus <command>`
+- **Local CLAUDE.md:** See `CLAUDE.md` in this repository for project-specific guidance
+- **Phenotype org governance:** `/Users/kooshapari/CodeProjects/Phenotype/repos/CLAUDE.md`
+- **Global agent guidance:** `~/.claude/AGENTS.md`
+- **AgilePlus work tracking:** `cd /repos/AgilePlus && agileplus <command>`
 
-## Work Requirements
+## Key Workflows
 
-1. **Check for AgilePlus spec before implementing**
-2. **Create spec for new work**: `agileplus specify --title "<feature>" --description "<desc>"`
-3. **Update work package status**: `agileplus status <feature-id> --wp <wp-id> --state <state>`
-4. **No code without corresponding AgilePlus spec**
+1. **Before implementing:** Check AgilePlus for existing specs
+2. **Quality gates:** Run linters, tests, and docs validation (see CLAUDE.md)
+3. **Worktrees:** Use `repos/Configra-wtrees/<topic>/` for feature work
+4. **Integration:** Commit to canonical repo (`main`) after quality gates pass
 
-## Branch Discipline
+## Project-Specific Gotchas
 
-- Feature branches in `repos/worktrees/<project>/<category>/<branch>`
-- Canonical repository tracks `main` only
-- Return to `main` for merge/integration checkpoints
-
-## UTF-8 Encoding
-
-All markdown files must use UTF-8.
+See CLAUDE.md for language stack, build commands, and testing requirements.
 
 ---
 
-
-
-## Review Bot Governance
-
-- Keep CodeRabbit PR blocking at the lowest level in `.coderabbit.yaml`: `pr_validation.block_on.severity: info`.
-- Keep Gemini Code Assist severity at the lowest level in `.gemini/config.yaml`: `code_review.comment_severity_threshold: LOW`.
-- Retrigger commands:
-  - CodeRabbit: comment `@coderabbitai full review` on the PR.
-  - Gemini Code Assist (when enabled in the repo): comment `@gemini-code-assist review` on the PR.
-  - If comment-trigger is unavailable, retrigger both bots by pushing a no-op commit to the PR branch.
-- Rate-limit discipline:
-  - Use a FIFO queue for retriggers (oldest pending PR first).
-  - Minimum spacing: one retrigger comment every 120 seconds per repo.
-  - On rate-limit response, stop sending new triggers in that repo, wait 15 minutes, then resume queue processing.
-  - Do not post duplicate trigger comments while a prior trigger is pending.
-
-## Child-Agent and Delegation Policy
-- Use child agents for scoped discovery, audits, multi-repo scans, and implementation planning before direct parent-agent edits.
-- Delegate high-context or high-churn tasks to subagents and keep parent-agent writes narrowly focused on integration.
-- Reserve parent-agent direct writes for the final decision layer.
-- Favor clean, auditable handoffs and explicit integration checkpoints.
+**Parent contract:** Extends Phenotype-org governance. See `CLAUDE.md` and parent `AGENTS.md` for complete operating procedures.
