@@ -6,7 +6,7 @@
 use chrono::Utc;
 use pheno_core::{ConfigEntry, FeatureFlag, SecretEntry, ValueType};
 use crate::domain::dto::{
-    AuditRecordPy, ConfigEntryPy, CreateFlagRequest, SetConfigRequest,
+    AuditRecordPy, ConfigEntryPy, CreateFlagRequest, FeatureFlagPy, SetConfigRequest,
     SetSecretRequest, VersionInfoPy,
 };
 
