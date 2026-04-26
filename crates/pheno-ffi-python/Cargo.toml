@@ -13,6 +13,6 @@ crate-type = ["cdylib"]
 pheno-core = { path = "../../pheno-core", version = "0.1.0" }
 pheno-db = { path = "../../pheno-db", version = "0.1.0" }
 pheno-crypto = { path = "../../pheno-crypto", version = "0.1.0" }
-pyo3 = { version = "0.22", features = ["extension-module"] }
+pyo3 = { version = "0.24", features = ["extension-module"] }
 chrono = "0.4"
 hex = "0.4"
