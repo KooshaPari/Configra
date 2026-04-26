@@ -118,3 +118,7 @@ Configra/
 **Status**: Active development  
 **Maintained by**: Phenotype Org  
 **Last Updated**: 2026-04-24
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
