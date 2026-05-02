@@ -36,7 +36,7 @@ impl FeatureFlagPy {
 pub struct AuditRecordPy {
     pub id: i64,
     pub old_value: Option<String>,
-    pub new_value: Option<String>,
+    pub new_value: String,
     pub changed_by: String,
     pub changed_at: String,
 }
@@ -45,7 +45,7 @@ impl AuditRecordPy {
     pub fn new(
         id: i64,
         old_value: Option<String>,
-        new_value: Option<String>,
+        new_value: String,
         changed_by: String,
         changed_at: String,
     ) -> Self {

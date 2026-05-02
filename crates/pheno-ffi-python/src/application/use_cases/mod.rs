@@ -3,9 +3,8 @@
 //! These use cases encapsulate business rules and coordinate between
 //! domain types and outbound ports.
 
-use pheno_core::{ConfigEntry, FeatureFlag, SecretEntry, ValueType};
+use pheno_core::{ConfigEntry, ConfigStore, FeatureFlag, FlagStore, SecretEntry, SecretStore, ValueType, VersionStore};
 use pheno_db::Database;
-use std::path::PathBuf;
 
 /// Result type for use case operations.
 pub type UseCaseResult<T> = Result<T, pheno_core::Error>;
@@ -244,7 +243,7 @@ impl<'a> GetSecret<'a> {
         let entry = self.db.get_secret(key)?;
         let plaintext =
             pheno_crypto::decrypt(&entry.encrypted_value, &entry.nonce, self.encryption_key)?;
-        Ok(String::from_utf8(plaintext)?)
+        String::from_utf8(plaintext).map_err(|e| pheno_core::Error::Other(e.to_string()))
     }
 }
 

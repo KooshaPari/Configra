@@ -4,10 +4,10 @@
 //! They exist to provide a stable interface for the Python bindings.
 
 use chrono::Utc;
-use pheno_core::{ConfigEntry, FeatureFlag, SecretEntry, ValueType};
+use pheno_core::{ConfigEntry, FeatureFlag, ValueType};
 use crate::domain::dto::{
     AuditRecordPy, ConfigEntryPy, CreateFlagRequest, FeatureFlagPy, SetConfigRequest,
-    SetSecretRequest, VersionInfoPy,
+    VersionInfoPy,
 };
 
 /// Convert from ConfigEntry to Python DTO.
@@ -51,7 +51,7 @@ impl AuditRecordPy {
     pub fn from_audit_record(
         id: i64,
         old_value: Option<String>,
-        new_value: Option<String>,
+        new_value: String,
         changed_by: String,
         changed_at: chrono::DateTime<Utc>,
     ) -> Self {

@@ -33,16 +33,10 @@ pub mod domain;
 pub mod application;
 pub mod adapters;
 
-// Re-export for backward compatibility
-pub use adapters::inbound::python::phenotype_config;
-
 // Legacy module for backward compatibility with existing Python bindings
 // This is a flat adapter that wraps the use cases
 mod legacy {
-    use super::*;
     use crate::application::use_cases::*;
-    use chrono::Utc;
-    use pheno_core::{ConfigEntry, FeatureFlag, SecretEntry, ValueType};
     use pheno_db::Database;
     use pyo3::exceptions::PyRuntimeError;
     use pyo3::prelude::*;
@@ -85,14 +79,16 @@ mod legacy {
         }
 
         fn get(&self, key: String) -> PyResult<(String, String, String)> {
-            let use_case = GetConfig::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = GetConfig::new(&db, &self.namespace);
             let entry = use_case.execute(&key).map_err(to_pyerr)?;
             Ok((entry.key, entry.value, entry.value_type.to_string()))
         }
 
         #[pyo3(signature = (key, value, value_type = "string".to_string()))]
         fn set(&self, key: String, value: String, value_type: String) -> PyResult<()> {
-            let use_case = SetConfig::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = SetConfig::new(&db, &self.namespace);
             use_case.execute_with_params(
                 key,
                 value,
@@ -102,7 +98,8 @@ mod legacy {
         }
 
         fn list(&self) -> PyResult<Vec<(String, String, String)>> {
-            let use_case = ListConfig::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = ListConfig::new(&db, &self.namespace);
             let entries = use_case.execute().map_err(to_pyerr)?;
             Ok(entries
                 .iter()
@@ -111,12 +108,14 @@ mod legacy {
         }
 
         fn delete(&self, key: String) -> PyResult<()> {
-            let use_case = DeleteConfig::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = DeleteConfig::new(&db, &self.namespace);
             use_case.execute(&key).map_err(to_pyerr)
         }
 
         fn audit(&self, key: String) -> PyResult<Vec<(i64, Option<String>, String, String, String)>> {
-            let use_case = AuditConfig::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = AuditConfig::new(&db, &self.namespace);
             let records = use_case.execute(&key).map_err(to_pyerr)?;
             Ok(records
                 .iter()
@@ -133,7 +132,8 @@ mod legacy {
         }
 
         fn restore(&self, key: String, audit_id: i64) -> PyResult<(String, String)> {
-            let use_case = RestoreConfig::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = RestoreConfig::new(&db, &self.namespace);
             let entry = use_case.execute(&key, audit_id).map_err(to_pyerr)?;
             Ok((entry.key, entry.value))
         }
@@ -158,7 +158,8 @@ mod legacy {
         }
 
         fn list(&self) -> PyResult<Vec<(String, bool, String)>> {
-            let use_case = ListFlags::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = ListFlags::new(&db, &self.namespace);
             let flags = use_case.execute().map_err(to_pyerr)?;
             Ok(flags
                 .iter()
@@ -168,22 +169,26 @@ mod legacy {
 
         #[pyo3(signature = (name, description = "".to_string()))]
         fn create(&self, name: String, description: String) -> PyResult<()> {
-            let use_case = CreateFlag::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = CreateFlag::new(&db, &self.namespace);
             use_case.execute_with_params(name, description).map_err(to_pyerr)
         }
 
         fn enable(&self, name: String) -> PyResult<()> {
-            let use_case = ToggleFlag::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = ToggleFlag::new(&db, &self.namespace);
             use_case.enable(&name).map_err(to_pyerr)
         }
 
         fn disable(&self, name: String) -> PyResult<()> {
-            let use_case = ToggleFlag::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = ToggleFlag::new(&db, &self.namespace);
             use_case.disable(&name).map_err(to_pyerr)
         }
 
         fn delete(&self, name: String) -> PyResult<()> {
-            let use_case = DeleteFlag::new(&self.db.lock(), &self.namespace);
+            let db = self.db.lock();
+            let use_case = DeleteFlag::new(&db, &self.namespace);
             use_case.execute(&name).map_err(to_pyerr)
         }
     }
@@ -213,22 +218,26 @@ mod legacy {
         }
 
         fn set(&self, key: String, plaintext: String) -> PyResult<()> {
-            let use_case = SetSecret::new(&self.db.lock(), &self.encryption_key);
+            let db = self.db.lock();
+            let use_case = SetSecret::new(&db, &self.encryption_key);
             use_case.execute(&key, &plaintext).map_err(to_pyerr)
         }
 
         fn get(&self, key: String) -> PyResult<String> {
-            let use_case = GetSecret::new(&self.db.lock(), &self.encryption_key);
+            let db = self.db.lock();
+            let use_case = GetSecret::new(&db, &self.encryption_key);
             use_case.execute(&key).map_err(to_pyerr)
         }
 
         fn list(&self) -> PyResult<Vec<String>> {
-            let use_case = ListSecrets::new(&self.db.lock());
+            let db = self.db.lock();
+            let use_case = ListSecrets::new(&db);
             use_case.execute().map_err(to_pyerr)
         }
 
         fn delete(&self, key: String) -> PyResult<()> {
-            let use_case = DeleteSecret::new(&self.db.lock());
+            let db = self.db.lock();
+            let use_case = DeleteSecret::new(&db);
             use_case.execute(&key).map_err(to_pyerr)
         }
     }
@@ -249,7 +258,8 @@ mod legacy {
         }
 
         fn show(&self) -> PyResult<Vec<(String, String, String, String)>> {
-            let use_case = ListVersions::new(&self.db.lock());
+            let db = self.db.lock();
+            let use_case = ListVersions::new(&db);
             let versions = use_case.execute().map_err(to_pyerr)?;
             Ok(versions
                 .iter()
@@ -265,12 +275,14 @@ mod legacy {
         }
 
         fn bump(&self, repo: String, version: String) -> PyResult<()> {
-            let use_case = BumpVersion::new(&self.db.lock());
+            let db = self.db.lock();
+            let use_case = BumpVersion::new(&db);
             use_case.execute(&repo, &version).map_err(to_pyerr)
         }
 
         fn sync(&self, repo: String, upstream: String) -> PyResult<()> {
-            let use_case = SyncVersion::new(&self.db.lock());
+            let db = self.db.lock();
+            let use_case = SyncVersion::new(&db);
             use_case.execute(&repo, &upstream).map_err(to_pyerr)
         }
     }
