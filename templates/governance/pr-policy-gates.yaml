@@ -1,0 +1,99 @@
+apiVersion: phenotype.governance/v1
+kind: PRPolicyGates
+metadata:
+  name: phenotype-pr-policy-gates
+spec:
+  stages: [SP, POC, IP, A, FP, B, EP, CN, RC, GA, PROD, LTS, HF, SS, DEP, AR, EOL]
+  defaults:
+    require_linked_issue: true
+    require_traceability_bundle: true
+    require_resolved_threads: true
+    require_up_to_date_branch: true
+    allow_admin_bypass: false
+    enforce_linear_history: true
+    block_merge_commits: true
+  gates_by_stage:
+    SP:
+      min_approvals: 0
+      require_codeowners: false
+      require_release_notes: false
+    POC:
+      min_approvals: 1
+      require_codeowners: false
+      require_release_notes: false
+    IP:
+      min_approvals: 1
+      require_codeowners: false
+      require_signed_commits: false
+    A:
+      min_approvals: 1
+      require_codeowners: true
+      require_signed_commits: false
+    FP:
+      min_approvals: 1
+      require_codeowners: true
+    B:
+      min_approvals: 1
+      require_codeowners: true
+      blocked_labels: [do-not-merge]
+    EP:
+      min_approvals: 2
+      require_codeowners: true
+      blocked_labels: [do-not-merge, risk-unreviewed]
+    CN:
+      min_approvals: 2
+      require_codeowners: true
+      require_signed_commits: true
+      blocked_labels: [do-not-merge, release-freeze]
+    RC:
+      min_approvals: 2
+      require_codeowners: true
+      require_signed_commits: true
+      require_release_notes: true
+      blocked_labels: [do-not-merge, release-freeze, missing-approval]
+    GA:
+      min_approvals: 2
+      require_codeowners: true
+      require_signed_commits: true
+      require_release_notes: true
+    PROD:
+      min_approvals: 2
+      require_codeowners: true
+      require_signed_commits: true
+      require_release_notes: true
+      require_runtime_rollback_plan: true
+      require_oncall_ack: true
+    LTS:
+      min_approvals: 2
+      require_codeowners: true
+      require_signed_commits: true
+      require_lts_backport_label: true
+    HF:
+      min_approvals: 2
+      require_codeowners: true
+      require_signed_commits: true
+      require_incident_reference: true
+    SS:
+      min_approvals: 1
+      require_codeowners: true
+      require_sunset_notice_link: true
+    DEP:
+      min_approvals: 1
+      require_codeowners: true
+      require_migration_guide_link: true
+    AR:
+      min_approvals: 1
+      require_codeowners: true
+      require_archive_manifest: true
+    EOL:
+      min_approvals: 1
+      require_codeowners: true
+      require_eol_notice_link: true
+  required_traceability_keys:
+    - ADR
+    - PRD
+    - PLAN
+    - TEST
+    - EVAL
+    - DOC
+    - GOV

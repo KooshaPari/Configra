@@ -1,0 +1,19 @@
+name: Release Drafter
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-drafter:
+    uses: KooshaPari/phenoShared/.github/workflows/reusable-release-drafter.yml@main
+    permissions:
+      contents: write
+      pull-requests: write

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  rust-check:
+    timeout-minutes: 45
+    name: Rust Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: dtolnay/rust-toolchain@5b842231ba77f5c045dba54ac5560fed2db780e2
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Clippy (warnings = errors)
+        run: cargo clippy --lib --workspace --exclude pheno-ffi-python --exclude pheno-ffi-go -- -D warnings
+      - name: Build
+        run: cargo build --workspace --exclude pheno-ffi-python --exclude pheno-ffi-go
+      - name: Test
+        run: cargo test --workspace --exclude pheno-ffi-python --exclude pheno-ffi-go
+
+  rust-build:
+    name: Rust Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: dtolnay/rust-toolchain@5b842231ba77f5c045dba54ac5560fed2db780e2
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+      - name: Build
+        run: cargo build --workspace --exclude pheno-ffi-python --exclude pheno-ffi-go

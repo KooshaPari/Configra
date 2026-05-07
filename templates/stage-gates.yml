@@ -1,0 +1,563 @@
+name: Stage Gates
+
+on:
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+env:
+  STAGE: ""
+  GATES: ""
+  GATE_STRICTNESS: ${{ vars.STAGE_GATE_STRICTNESS || 'strict' }}
+
+jobs:
+  detect-stage:
+    runs-on: ubuntu-latest
+    outputs:
+      stage: ${{ steps.detect.outputs.stage }}
+      gates: ${{ steps.detect.outputs.gates }}
+      lang: ${{ steps.detect-lang.outputs.lang }}
+      strict_mode: ${{ steps.strict-mode.outputs.strict_mode }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect stage from branch
+        id: detect
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          python -m pip install --disable-pip-version-check pyyaml
+          python - <<'PY'
+          import fnmatch
+          import os
+          import sys
+          import yaml
+
+          cfg_path = "templates/governance/ci-required-jobs.yaml"
+          with open(cfg_path, "r", encoding="utf-8") as handle:
+              cfg = yaml.safe_load(handle) or {}
+
+          branch = os.environ.get("BRANCH", "")
+          default_stage = cfg["default_stage"]
+          selected_stage = default_stage
+
+          for rule in cfg["branch_stage_rules"]:
+              patterns = rule.get("patterns", [])
+              if any(fnmatch.fnmatch(branch, pattern) for pattern in patterns):
+                  selected_stage = rule["stage"]
+                  break
+
+          stage_cfg = cfg["stages"].get(selected_stage)
+          if not stage_cfg:
+              print(f"Unknown stage '{selected_stage}' from {cfg_path}", file=sys.stderr)
+              sys.exit(1)
+
+          required_jobs = stage_cfg.get("required_jobs", stage_cfg.get("gates", []))
+          gates = ",".join(required_jobs)
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as out:
+              out.write(f"stage={selected_stage}\n")
+              out.write(f"gates={gates}\n")
+
+          print(
+              f"Resolved branch '{branch}' -> stage '{selected_stage}' with gates: {gates or '<none>'}"
+          )
+          PY
+
+      - name: Detect strict mode signal
+        id: detect-strict
+        env:
+          STAGE_GATES_STRICT_VAR: ${{ vars.STAGE_GATES_STRICT }}
+          DETECTED_STAGE: ${{ steps.detect.outputs.stage }}
+        run: |
+          python -m pip install --disable-pip-version-check pyyaml
+          python - <<'PY'
+          import os
+          import yaml
+
+          def truthy(value: str) -> bool:
+              return value.strip().lower() in {"1", "true", "yes", "on"}
+
+          cfg_path = "templates/governance/ci-required-jobs.yaml"
+          with open(cfg_path, "r", encoding="utf-8") as handle:
+              cfg = yaml.safe_load(handle) or {}
+
+          strict_from_env = truthy(os.environ.get("STAGE_GATES_STRICT_VAR", "false"))
+          stage = os.environ.get("DETECTED_STAGE", "")
+          forced_stages = set(cfg.get("force_strict_stages", []))
+          strict_for_stage = stage in forced_stages
+          strict = strict_from_env or strict_for_stage
+
+          source = "stage_override" if strict_for_stage else "global_flag"
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as out:
+              out.write(f"strict={'true' if strict else 'false'}\n")
+
+          print(
+              f"Strict mode resolved for stage '{stage}': strict={strict} "
+              f"(global={strict_from_env}, forced={strict_for_stage}, source={source})"
+          )
+          PY
+
+      - name: Resolve strict mode
+        id: strict-mode
+        run: |
+          strict="${STAGE_GATES_STRICT:-false}"
+          case "$strict" in
+            true|TRUE|1|yes|YES) strict="true" ;;
+            *) strict="false" ;;
+          esac
+          echo "strict_mode=${strict}" >> "$GITHUB_OUTPUT"
+          echo "Stage gate strict mode: ${strict}"
+
+      - name: Detect language
+        id: detect-lang
+        run: |
+          if [ -f Cargo.toml ]; then
+            echo "lang=rust" >> "$GITHUB_OUTPUT"
+          elif [ -f go.mod ]; then
+            echo "lang=go" >> "$GITHUB_OUTPUT"
+          elif [ -f pyproject.toml ] || [ -f setup.py ]; then
+            echo "lang=python" >> "$GITHUB_OUTPUT"
+          elif [ -f package.json ]; then
+            echo "lang=node" >> "$GITHUB_OUTPUT"
+          else
+            echo "lang=unknown" >> "$GITHUB_OUTPUT"
+          fi
+
+  preflight-authz:
+    needs: detect-stage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Preflight GitHub token permissions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "ERROR: GITHUB_TOKEN is missing."
+            exit 1
+          fi
+          http_code=$(curl -sS -o /tmp/repo.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}")
+          if [ "${http_code}" -ne 200 ]; then
+            echo "ERROR: token preflight failed for ${REPO} (HTTP ${http_code})."
+            cat /tmp/repo.json
+            exit 1
+          fi
+          echo "GitHub token preflight passed."
+      - name: Preflight FOSSA secret for license gate
+        if: contains(needs.detect-stage.outputs.gates, 'license')
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FOSSA_API_KEY:-}" ]; then
+            echo "ERROR: license gate requested, but FOSSA_API_KEY is not configured."
+            echo "ACTION: add repository or organization secret FOSSA_API_KEY."
+            exit 1
+          fi
+          echo "FOSSA secret preflight passed."
+
+  format-check:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'format')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Format check (Rust)
+        if: needs.detect-stage.outputs.lang == 'rust'
+        run: cargo fmt --check
+      - name: Format check (Go)
+        if: needs.detect-stage.outputs.lang == 'go'
+        run: test -z "$(gofmt -l .)"
+      - name: Format check (Python)
+        if: needs.detect-stage.outputs.lang == 'python'
+        run: pip install ruff && ruff format --check .
+      - name: Format check (Node)
+        if: needs.detect-stage.outputs.lang == 'node'
+        run: npx prettier --check .
+
+  lint:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'lint')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint (Rust)
+        if: needs.detect-stage.outputs.lang == 'rust'
+        run: cargo clippy -- -D warnings
+      - name: Lint (Go)
+        if: needs.detect-stage.outputs.lang == 'go'
+        uses: golangci/golangci-lint-action@v4
+      - name: Lint (Python)
+        if: needs.detect-stage.outputs.lang == 'python'
+        run: pip install ruff && ruff check .
+      - name: Lint (Node)
+        if: needs.detect-stage.outputs.lang == 'node'
+        run: npx eslint .
+
+  secret-scan:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'secrets')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  unit-tests:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'unit')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests (Rust)
+        if: needs.detect-stage.outputs.lang == 'rust'
+        run: cargo test --lib
+      - name: Unit tests (Go)
+        if: needs.detect-stage.outputs.lang == 'go'
+        run: go test ./...
+      - name: Unit tests (Python)
+        if: needs.detect-stage.outputs.lang == 'python'
+        run: pip install -e ".[test]" && pytest -x
+      - name: Unit tests (Node)
+        if: needs.detect-stage.outputs.lang == 'node'
+        run: npm ci && npm test
+
+  integration-tests:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'integration')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integration tests (Rust)
+        if: needs.detect-stage.outputs.lang == 'rust'
+        run: cargo test --test '*'
+      - name: Integration tests (Go)
+        if: needs.detect-stage.outputs.lang == 'go'
+        run: go test -tags=integration ./...
+      - name: Integration tests (Python)
+        if: needs.detect-stage.outputs.lang == 'python'
+        run: pip install -e ".[test]" && pytest -m integration
+      - name: Integration tests (Node)
+        if: needs.detect-stage.outputs.lang == 'node'
+        run: npm ci && npm run test:integration
+
+  coverage-check:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'coverage-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine coverage floor
+        id: floor
+        run: |
+          GATES="${{ needs.detect-stage.outputs.gates }}"
+          FLOOR=$(echo "$GATES" | grep -oP 'coverage-\K\d+' | tail -1)
+          echo "floor=${FLOOR:-0}" >> "$GITHUB_OUTPUT"
+      - name: Coverage (Rust)
+        if: needs.detect-stage.outputs.lang == 'rust'
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --fail-under ${{ steps.floor.outputs.floor }}
+      - name: Coverage (Go)
+        if: needs.detect-stage.outputs.lang == 'go'
+        run: |
+          go test -coverprofile=coverage.out ./...
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print int($3)}')
+          if [ "$COVERAGE" -lt "${{ steps.floor.outputs.floor }}" ]; then
+            echo "Coverage ${COVERAGE}% below floor ${{ steps.floor.outputs.floor }}%"
+            exit 1
+          fi
+      - name: Coverage (Python)
+        if: needs.detect-stage.outputs.lang == 'python'
+        run: |
+          pip install -e ".[test]"
+          pytest --cov --cov-fail-under=${{ steps.floor.outputs.floor }}
+      - name: Coverage (Node)
+        if: needs.detect-stage.outputs.lang == 'node'
+        run: |
+          npm ci
+          npx jest --coverage --coverageThreshold='{"global":{"lines":${{ steps.floor.outputs.floor }}}}'
+
+  sast-scan:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'sast')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SAST (Rust)
+        if: needs.detect-stage.outputs.lang == 'rust'
+        run: cargo install cargo-audit && cargo audit
+      - name: SAST (Go)
+        if: needs.detect-stage.outputs.lang == 'go'
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...
+      - name: SAST (Python)
+        if: needs.detect-stage.outputs.lang == 'python'
+        run: pip install bandit && bandit -r . -x ./tests
+      - name: SAST (Node)
+        if: needs.detect-stage.outputs.lang == 'node'
+        run: npx njsscan .
+
+  dependency-audit:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'dep-audit')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dep audit (Rust)
+        if: needs.detect-stage.outputs.lang == 'rust'
+        run: cargo install cargo-deny && cargo deny check
+      - name: Dep audit (Go)
+        if: needs.detect-stage.outputs.lang == 'go'
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...
+      - name: Dep audit (Python)
+        if: needs.detect-stage.outputs.lang == 'python'
+        run: pip install pip-audit && pip-audit
+      - name: Dep audit (Node)
+        if: needs.detect-stage.outputs.lang == 'node'
+        run: npm audit --audit-level=moderate
+
+  license-check:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'license')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: License scan
+        uses: fossas/fossa-action@main
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+
+  e2e-smoke:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'e2e-smoke')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run smoke E2E tests
+        env:
+          STRICTNESS: ${{ env.GATE_STRICTNESS }}
+        run: |
+          set -euo pipefail
+          policy_outcome() {
+            local msg="$1"
+            if [ "${STRICTNESS}" = "strict" ]; then
+              echo "ERROR: ${msg}"
+              exit 1
+            fi
+            echo "WARNING: ${msg} (STRICTNESS=${STRICTNESS}, non-blocking)"
+          }
+          if [ -f Makefile ] && grep -q 'e2e-smoke' Makefile; then
+            make e2e-smoke
+          else
+            policy_outcome "e2e-smoke gate selected but Makefile target e2e-smoke is missing"
+          fi
+
+  e2e-full:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'e2e-full')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run full E2E tests
+        env:
+          STRICTNESS: ${{ env.GATE_STRICTNESS }}
+        run: |
+          set -euo pipefail
+          policy_outcome() {
+            local msg="$1"
+            if [ "${STRICTNESS}" = "strict" ]; then
+              echo "ERROR: ${msg}"
+              exit 1
+            fi
+            echo "WARNING: ${msg} (STRICTNESS=${STRICTNESS}, non-blocking)"
+          }
+          if [ -f Makefile ] && grep -q 'e2e-full' Makefile; then
+            make e2e-full
+          else
+            policy_outcome "e2e-full gate selected but Makefile target e2e-full is missing"
+          fi
+
+  perf-benchmark:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'perf')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run performance benchmarks
+        env:
+          STRICTNESS: ${{ env.GATE_STRICTNESS }}
+        run: |
+          set -euo pipefail
+          policy_outcome() {
+            local msg="$1"
+            if [ "${STRICTNESS}" = "strict" ]; then
+              echo "ERROR: ${msg}"
+              exit 1
+            fi
+            echo "WARNING: ${msg} (STRICTNESS=${STRICTNESS}, non-blocking)"
+          }
+          if [ -f Makefile ] && grep -q 'bench' Makefile; then
+            make bench
+          else
+            policy_outcome "perf gate selected but Makefile target bench is missing"
+          fi
+
+  sla-validation:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'sla-validation')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate SLA compliance
+        env:
+          STRICTNESS: ${{ env.GATE_STRICTNESS }}
+        run: |
+          set -euo pipefail
+          policy_outcome() {
+            local msg="$1"
+            if [ "${STRICTNESS}" = "strict" ]; then
+              echo "ERROR: ${msg}"
+              exit 1
+            fi
+            echo "WARNING: ${msg} (STRICTNESS=${STRICTNESS}, non-blocking)"
+          }
+          if [ -f Makefile ] && grep -q 'sla-check' Makefile; then
+            make sla-check
+          else
+            policy_outcome "sla-validation gate selected but Makefile target sla-check is missing"
+          fi
+
+  coderabbit:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'coderabbit')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger CodeRabbit review
+        run: |
+          echo "CodeRabbit review triggered for stage ${{ needs.detect-stage.outputs.stage }}"
+          # CodeRabbit auto-reviews PRs via its GitHub App integration.
+          # This job acts as a gate marker; the .coderabbit.yaml config
+          # controls review depth per stage.
+
+  gca-review:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'gca-review')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: GCA review gate
+        run: echo "GCA review required for stage ${{ needs.detect-stage.outputs.stage }}. Ensure GCA sign-off before merge."
+
+  manual-security:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'manual-security')
+    runs-on: ubuntu-latest
+    environment: security-review
+    steps:
+      - name: Manual security review gate
+        run: echo "Manual security review required. This job requires environment approval."
+
+  sbom:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'sbom')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          artifact-name: sbom.spdx.json
+
+  artifact-checksum:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'artifact-checksum')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and checksum artifacts
+        env:
+          STRICTNESS: ${{ env.GATE_STRICTNESS }}
+        run: |
+          set -euo pipefail
+          policy_outcome() {
+            local msg="$1"
+            if [ "${STRICTNESS}" = "strict" ]; then
+              echo "ERROR: ${msg}"
+              exit 1
+            fi
+            echo "WARNING: ${msg} (STRICTNESS=${STRICTNESS}, non-blocking)"
+          }
+          if [ -f Makefile ] && grep -q 'build' Makefile; then
+            make build
+            if [ -d dist ]; then
+              find dist/ -type f -exec sha256sum {} \; > checksums.sha256
+            else
+              policy_outcome "build ran but dist/ directory was not produced"
+            fi
+          else
+            policy_outcome "artifact-checksum gate selected but Makefile target build is missing"
+          fi
+      - name: Upload checksums
+        if: hashFiles('checksums.sha256') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: checksums.sha256
+
+  targeted-regression:
+    needs: [detect-stage, preflight-authz]
+    if: contains(needs.detect-stage.outputs.gates, 'targeted-regression')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run targeted regression tests
+        run: |
+          if [ -f Makefile ] && grep -q 'regression' Makefile; then
+            make regression
+          else
+            if [ "${{ needs.detect-stage.outputs.strict_mode }}" = "true" ]; then
+              echo "No regression target found; strict mode enabled, failing."
+              exit 1
+            fi
+            echo "No regression target found; strict mode disabled, running full unit tests fallback"
+            case "${{ needs.detect-stage.outputs.lang }}" in
+              rust) cargo test --lib ;;
+              go) go test ./... ;;
+              python) pip install -e ".[test]" && pytest -x ;;
+              node) npm ci && npm test ;;
+              *) echo "Unknown language; no fallback test command available" ;;
+            esac
+
+  strictness-signal:
+    needs: detect-stage
+    if: needs.detect-stage.outputs.strict == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce strictness signal visibility
+        run: |
+          echo "STAGE_GATES_STRICT=true (strict mode active)"
+          echo "Stage=${{ needs.detect-stage.outputs.stage }}"
+
+  verify-merge-token:
+    needs: detect-stage
+    if: contains(needs.detect-stage.outputs.gates, 'verify-merge-token')
+    uses: ./.github/workflows/verify-merge-token.yml
+    with:
+      stage: ${{ needs.detect-stage.outputs.stage }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit

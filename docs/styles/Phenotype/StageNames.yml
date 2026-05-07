@@ -1,0 +1,8 @@
+extends: existence
+message: "Use canonical uppercase stage codes: SP, POC, IP, A, FP, B, EP, CN, RC, GA, PROD, LTS, SS, DEP, AR, EOL, HF."
+level: error
+ignorecase: false
+nonword: true
+tokens:
+  - 'stage\s*[:=]\s*(sp|poc|ip|a|fp|b|ep|cn|rc|ga|prod|lts|ss|dep|ar|eol|hf)\b'
+  - '\bga/stable\b'
