@@ -1,3 +1,0 @@
-owner,dependency_key,fallback_slug,fallback_workspace_dir,remediation_hint
-KooshaPari,template_repo,KooshaPari/template-commons,template-commons,"grant actions read access to KooshaPari/template-commons or provide workflow_dispatch input template_repo=owner/repo"
-KooshaPari,stage_gates_repo,KooshaPari/phenotype-config,phenotype-config,"grant actions read access to KooshaPari/phenotype-config or provide workflow_dispatch input stage_gates_repo=owner/repo"

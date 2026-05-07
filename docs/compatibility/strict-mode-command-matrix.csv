@@ -1,9 +1,0 @@
-repo,language,format,lint,unit,strict_ready
-thegent,python,ruff format --check,ruff check,pytest -x,yes
-cliproxyapi++,go,gofmt -l,golangci-lint run,go test ./...,yes
-agentapi-plusplus,go,gofmt -l,make lint,go test ./...,yes
-bifrost-extensions,go,gofmt -l,golangci-lint run,go test ./...,yes
-portage,python,ruff format --check,ruff check,pytest -x,yes
-civ,rust,cargo fmt --check,cargo clippy --all-targets -- -D warnings,cargo test --lib,yes
-heliosApp,node,npm run format,just lint,npm test,yes
-heliosCLI,rust,cargo fmt --check,cargo clippy --all-targets -- -D warnings,cargo test --lib,yes
