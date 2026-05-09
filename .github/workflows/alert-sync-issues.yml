@@ -4,6 +4,12 @@ on:
     - cron: '17 * * * *'
   workflow_dispatch:
 
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  security-events: read
+
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
