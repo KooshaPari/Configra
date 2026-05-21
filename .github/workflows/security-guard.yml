@@ -3,7 +3,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  timeout-minutes: 10
 jobs:
   audit:
     runs-on: ubuntu-latest

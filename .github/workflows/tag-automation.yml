@@ -8,6 +8,8 @@ concurrency:
 # See: https://github.com/KooshaPari/phenoShared/blob/main/.github/workflows/reusable/tag-automation.yml
 
 on:
+
+timeout-minutes: 30
   push:
     tags:
       - 'v*'

@@ -5,6 +5,9 @@ concurrency:
 
 
 on:
+
+
+timeout-minutes: 15
   pull_request:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
 

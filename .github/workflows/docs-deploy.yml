@@ -1,6 +1,7 @@
 name: Deploy docs
 on:
   push:
+  timeout-minutes: 30
     branches: [main]
     paths:
       - 'docs/**'

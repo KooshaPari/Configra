@@ -1,6 +1,7 @@
 name: Alert sync issues
 on:
   schedule:
+  timeout-minutes: 10
     - cron: '17 * * * *'
   workflow_dispatch:
 

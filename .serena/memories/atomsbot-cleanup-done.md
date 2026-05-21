@@ -1,0 +1,3 @@
+- Updated all GitHub Actions workflow files (quality-gate, legacy-tooling, release, doc-links, FR coverage, trufflehog, cargo-deny, release-drafter) with proper linting steps and removed continue-on-error flags.
+- Restored .env.local after accidental deletion and verified local state.
+- No further work will be done on AtomsBot; moving on to other project tasks and hygiene loops.
