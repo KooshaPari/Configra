@@ -4,8 +4,6 @@ concurrency:
   cancel-in-progress: true
 
 on:
-
-timeout-minutes: 10
   push: { branches: [main], paths: ['Cargo.toml', '**/Cargo.toml'] }
   pull_request: { paths: ['Cargo.toml', '**/Cargo.toml'] }
   schedule: [{ cron: '47 6 * * 4' }]
@@ -14,5 +12,5 @@ jobs:
   machete:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - uses: bnjbvr/cargo-machete@main

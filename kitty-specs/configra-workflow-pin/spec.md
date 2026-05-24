@@ -1,0 +1,1 @@
+Fix audit-flagged workflow integrity issues in Configra by moving root-level timeout-minutes entries to the proper job level and replacing mutable @main reusable workflow refs with immutable SHAs where the referenced repository is available locally.

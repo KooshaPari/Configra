@@ -17,6 +17,6 @@ concurrency:
 
 jobs:
   sync:
-    uses: KooshaPari/phenoShared/.github/workflows/alert-sync-issues.yml@main
+    uses: KooshaPari/phenoShared/.github/workflows/alert-sync-issues.yml@136def14b63e59da150eae1dc525677746098dd0
     with:
       auto-label: auto-alert-sync
