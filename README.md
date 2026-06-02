@@ -1,3 +1,6 @@
+> **Work state:** ACTIVE · **Progress:** `█████░░░░░ 50%`
+> Rust configuration framework (layered config/env/secrets); pre-1.0 · updated 2026-06-02
+
 > **Pinned references (Phenotype-org)**
 > - MSRV: see rust-toolchain.toml
 > - cargo-deny config: see deny.toml
