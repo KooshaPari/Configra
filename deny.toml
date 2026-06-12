@@ -1,3 +1,11 @@
+[bans]
+workspace-features = "deny"
+multiple-mains = "deny"
+main = "deny"
+unnameable-traits = "deny"
+unnameable-types = "deny"
+unknown-lints = "deny"
+
 [licenses]
 version = 2
 allow = [
@@ -23,6 +31,7 @@ allow = [
 ]
 
 [sources]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 unknown-git = "deny"
 
 [advisories]
