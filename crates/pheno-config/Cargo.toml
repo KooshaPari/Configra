@@ -1,0 +1,37 @@
+[package]
+name = "pheno-config"
+version = "0.2.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Canonical typed-config loader for the pheno-* fleet. Reads <PREFIX>_* env vars (with a ConfigBuilder for programmatic construction), JSON config files, and TOML config files, returning a Config struct with url/port/log_level/db_path/feature_flags. Includes a 12-factor `combine()` that overlays env over TOML."
+repository = "https://github.com/KooshaPari/Configra"
+keywords = ["config", "phenotype", "pheno-config", "env", "settings"]
+categories = ["config", "rust-patterns"]
+# Absorbed into Configra per ADR-031 follow-up (L5-104.7). The crate
+# name and public API are preserved verbatim — consumers continue to
+# depend on `pheno-config` exactly as before. Only the source-of-
+# truth repo has moved from KooshaPari/phenotype-apps (where the
+# meta-repo's pheno-config/ subdir lived) to KooshaPari/Configra.
+publish = true
+rust-version = "1.82"
+
+[lib]
+name = "pheno_config"
+path = "src/lib.rs"
+
+[dependencies]
+# thiserror stays at 1.0 for API stability — the workspace pin is 2,
+# but a v1 → v2 migration would force a breaking change on every
+# pheno-* consumer.
+thiserror = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+
+[[package.metadata.docs.rs]]
+targets = ["x86_64-unknown-linux-gnu"]
