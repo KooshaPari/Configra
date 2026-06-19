@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/settly", "crates/pheno-config", "crates/config-schema"]
+members = [
+    "crates/settly",
+    "crates/pheno-config",
+    "crates/config-schema",
+    "crates/phenotype-config-loader",
+]
 
 [workspace.package]
 version = "0.1.0"
