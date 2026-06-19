@@ -1,4 +1,10 @@
-# Intent provenance archive
+# Intent provenance archive (absorbed)
+
+> **Absorbed from `KooshaPari/phenotype-config` per ADR-031 (L5-110).**
+> Original commit: `f86f8e9` on `main`, 2026-06-17.
+> This directory holds the **verbatim user prompts** archive for Configra's
+> intent provenance. Per ADR-031, all `phenotype-config` content migrates
+> here so the methodology is preserved.
 
 This folder holds **verbatim user prompts** extracted from agent session logs.
 
