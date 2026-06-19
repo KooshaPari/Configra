@@ -28,10 +28,21 @@ thiserror = "1.0"
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
+# ADR-036: opt-in `tracing` support, gated by the `tracing` feature.
+# Consumers add `pheno-config = { version = "0.2", features = ["tracing"] }`
+# to opt into the OTLP substrate.
+tracing = { workspace = true, optional = true }
+
+[features]
+default = []
+# ADR-036: opt into `tracing` so `ConfigBuilder::build` can emit spans
+tracing = ["dep:tracing"]
 
 [dev-dependencies]
 serde_json = { workspace = true }
 tempfile = { workspace = true }
+# ADR-036: test that tracing spans emit (use OTEL_SDK_DISABLED=true in CI)
+tracing-test = "0.2"
 
 [[package.metadata.docs.rs]]
 targets = ["x86_64-unknown-linux-gnu"]
