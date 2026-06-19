@@ -1,0 +1,23 @@
+okf_version: "1.0"
+# Absorbed from KooshaPari/phenotype-config per ADR-031 (L5-110).
+# Original commit: f86f8e9 on main, 2026-06-17.
+# Preserved verbatim; the actual Configra OKF manifest will be regenerated
+# as part of the substrate audit (L5-110 / T16.1).
+project:
+  id: koosha.phenotype.phenotype-config
+  name: phenotype-config
+  charter_ref: ../governance/charter.md
+  review_ref: ../governance/review.md
+artifacts:
+  - id: charter
+    path: ../governance/charter.md
+    kind: governance
+    summary: "config role owner; settly Rust core"
+  - id: intent-root
+    path: ../governance/intent.md
+    kind: intent
+    summary: "Migrate settly from HexaKit per RFC 002"
+provenance:
+  intent_prompts: ../intent/prompts/
+  last_scrape: null
+  sources: [cursor]
