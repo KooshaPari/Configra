@@ -2,20 +2,49 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
 # Each line is a file pattern followed by one or more owners.
-# Order matters: the last matching pattern takes precedence.
+# Order matters: the LAST matching pattern takes precedence.
+# Pattern syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default owner for everything in the repo
-* @KooshaPari
+*                          @kooshapari
 
 # Core Rust workspace
-/crates/    @KooshaPari
+/crates/                   @kooshapari
+/Cargo.toml                @kooshapari
+/Cargo.lock                @kooshapari
+/justfile                  @kooshapari
+/deny.toml                 @kooshapari
+/rust-toolchain.toml       @kooshapari
 
-# GitHub Actions and CI configuration
-/.github/   @KooshaPari
+# GitHub Actions, templates, and CI configuration
+/.github/                  @kooshapari
+/.github/workflows/        @kooshapari
+/.github/ISSUE_TEMPLATE/   @kooshapari
+/.github/PULL_REQUEST_TEMPLATE.md @kooshapari
+/.github/CODEOWNERS        @kooshapari
 
-# Governance and documentation
-/AGENTS.md      @KooshaPari
-/SPEC.md        @KooshaPari
-/ARCHITECTURE.md @KooshaPari
-/justfile       @KooshaPari
-/deny.toml      @KooshaPari
+# Governance, ethics, and security policies
+/CODE_OF_CONDUCT.md        @kooshapari
+/CONTRIBUTING.md           @kooshapari
+/SECURITY.md               @kooshapari
+/CHANGELOG.md              @kooshapari
+
+# Project metadata
+/AGENTS.md                 @kooshapari
+/SPEC.md                   @kooshapari
+/README.md                 @kooshapari
+/FUNDING.yml               @kooshapari
+/llms.txt                  @kooshapari
+
+# Workspace-wide environment configuration
+/.editorconfig             @kooshapari
+/.gitattributes            @kooshapari
+/.gitignore                @kooshapari
+
+# Docs / architecture
+/docs/                     @kooshapari
+/docs/ARCHITECTURE.md      @kooshapari
+/docs/CONFIG.md            @kooshapari
+
+# Absorbed-content index (historical record)
+/ABSORBED-FROM/            @kooshapari

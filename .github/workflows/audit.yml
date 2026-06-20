@@ -1,0 +1,44 @@
+# Configra — cargo-audit workflow
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# Runs cargo-audit against the RustSec advisory database.
+# Local equivalent: `just audit`
+
+name: Audit
+
+on:
+  push:
+    branches: [main, "feat/**", "chore/**", "fix/**"]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Tuesday 04:00 UTC refresh of the RustSec DB
+    - cron: "0 4 * * 2"
+  workflow_dispatch:
+
+concurrency:
+  group: audit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: cargo-audit (RustSec advisory DB)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master / stable
+
+      - name: cargo-audit
+        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: "--deny warnings"

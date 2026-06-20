@@ -1,75 +1,172 @@
 # Configra — Release workflow
 # SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# Triggered by tag push matching `v*.*.*`. Verifies the tag matches the
+# workspace version, then publishes each crate in dependency order and
+# creates a GitHub Release with auto-generated notes.
 
 name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry-run (no publish)"
+        required: false
+        default: "true"
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
-  # ─── Publish to crates.io ──────────────────────────────────────────────────
-  publish:
-    name: Publish to crates.io
+  # ─── Pre-flight: tag must match Cargo.toml version ──────────────────────────
+  verify-tag:
+    name: Verify tag vs workspace version
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Verify version tag matches workspace version
+      - name: Compute versions
+        id: v
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          WORKSPACE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)"
+          WORKSPACE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
+          echo "tag=${TAG_VERSION}"
+          echo "workspace=${WORKSPACE_VERSION}"
           if [ "$TAG_VERSION" != "$WORKSPACE_VERSION" ]; then
-            echo "ERROR: Tag version ($TAG_VERSION) does not match workspace version ($WORKSPACE_VERSION)"
+            echo "::error::Tag version (${TAG_VERSION}) does not match workspace version (${WORKSPACE_VERSION})."
             exit 1
           fi
+          echo "version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+
+  # ─── Test on release tag ───────────────────────────────────────────────────
+  test:
+    name: Test on tag
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master / stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@5cb072d7354962be830356aa6b146f7612846014 # v2.7.5
+
+      - name: cargo test
+        run: cargo test --workspace --locked --all-features
+
+  # ─── Publish to crates.io (dependency order) ───────────────────────────────
+  publish:
+    name: Publish to crates.io
+    needs: [verify-tag, test]
+    runs-on: ubuntu-latest
+    environment: crates-io
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master / stable
 
       - name: Publish config-schema
-        run: cargo publish -p config-schema
+        if: ${{ github.event_name == 'push' }}
+        run: cargo publish -p config-schema --locked --no-verify
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        if: ${{ github.event_name == 'push' }}
+        uses: katyo/publish-crates@02cc2f1ad653fb25c7d1ff9eb590a8a50d06186b # v2
+        with:
+          wait-between-steps: 30
 
       - name: Publish pheno-config
-        run: cargo publish -p pheno-config
+        if: ${{ github.event_name == 'push' }}
+        run: cargo publish -p pheno-config --locked --no-verify
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index
+        if: ${{ github.event_name == 'push' }}
+        uses: katyo/publish-crates@02cc2f1ad653fb25c7d1ff9eb590a8a50d06186b # v2
+        with:
+          wait-between-steps: 30
 
       - name: Publish settly
-        run: cargo publish -p settly
+        if: ${{ github.event_name == 'push' }}
+        run: cargo publish -p settly --locked --no-verify
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # ─── GitHub Release ────────────────────────────────────────────────────────
+      - name: Wait for crates.io index
+        if: ${{ github.event_name == 'push' }}
+        uses: katyo/publish-crates@02cc2f1ad653fb25c7d1ff9eb590a8a50d06186b # v2
+        with:
+          wait-between-steps: 30
+
+      - name: Publish configra-config
+        if: ${{ github.event_name == 'push' }}
+        run: cargo publish -p configra-config --locked --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  # ─── GitHub Release with auto-generated notes ──────────────────────────────
   github-release:
     name: Create GitHub Release
+    needs: publish
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
 
-      - name: Generate release notes
+      - name: Generate release notes (conventional commits)
         id: release_notes
-        uses: mikepenz/release-changelog-builder-action@v5
+        uses: mikepenz/release-changelog-builder-action@c9dc8369bccbc41e0ac887f8fd674f5925d315f7 # v5
         with:
           configurationJson: |
             {
-              "template": "#{{CHANGELOG}}\n\n**Full Changelog**: {{URL}}",
+              "template": "# {{CHANGELOG}}\n\n**Full Changelog**: {{URL}}",
               "categories": [
-                {"title": "## 🚀 Features", "labels": ["feat"]},
-                {"title": "## 🐛 Bug Fixes", "labels": ["fix"]},
-                {"title": "## 📚 Documentation", "labels": ["docs"]},
-                {"title": "## 🧹 Chores", "labels": ["chore"]}
+                {"title": "## Features",   "labels": ["feat", "feature"]},
+                {"title": "## Bug Fixes",  "labels": ["fix", "bug"]},
+                {"title": "## Docs",       "labels": ["docs", "documentation"]},
+                {"title": "## Refactor",   "labels": ["refactor"]},
+                {"title": "## Tests",      "labels": ["test", "tests"]},
+                {"title": "## Build",      "labels": ["build"]},
+                {"title": "## CI",         "labels": ["ci"]},
+                {"title": "## Chores",     "labels": ["chore"]}
               ]
             }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: ${{ steps.release_notes.outputs.changelog }}
           generate_release_notes: false
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}

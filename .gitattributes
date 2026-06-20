@@ -1,0 +1,50 @@
+# .gitattributes — normalize line endings and language stats for GitHub.
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Auto-detect text vs. binary
+*                 text=auto whitespace=trim-leading-space,trailing-space
+
+# Force LF for shell scripts and Rust source
+*.sh              text eol=lf
+*.bash            text eol=lf
+*.zsh             text eol=lf
+*.rs              text eol=lf
+*.toml            text eol=lf
+*.yml             text eol=lf
+*.yaml            text eol=lf
+*.json            text eol=lf
+*.md              text eol=lf
+
+# CRLF for Windows-only sources (none in this repo today)
+# *.bat            text eol=crlf
+
+# Treat these as binary (no diff/merge)
+*.png             binary
+*.jpg             binary
+*.jpeg            binary
+*.gif             binary
+*.ico             binary
+*.pdf             binary
+*.woff            binary
+*.woff2           binary
+
+# Markdown tables — never collapse trailing whitespace (GFM requires it)
+*.md              whitespace=-trailing-space
+
+# Generated / vendored files (still text but no diff noise)
+/Cargo.lock       diff=cargo
+target/**         -text
+**/*.rs.bk        -text
+
+# Use Rust linguist overrides
+*.rs              linguist-language=Rust
+
+# Use Markdown for all .md files
+*.md              linguist-language=Markdown
+
+# Exclude vendored / docs from language stats
+docs/migrations/** linguist-documentation
+typescript/dist/** linguist-generated
+
+# Standard Git LFS section (no LFS today, present for future use)
+# *.psd filter=lfs diff=lfs merge=lfs -text

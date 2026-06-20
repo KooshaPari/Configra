@@ -1,0 +1,26 @@
+# Configra — Issue / PR templates configuration
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+blank_issues_enabled: false
+contact_links:
+  - name: Security disclosure (private)
+    url: https://github.com/KooshaPari/Configra/security/advisories/new
+    about: Please do **not** file public issues for security vulnerabilities.
+  - name: Discussions
+    url: https://github.com/KooshaPari/Configra/discussions
+    about: For general questions, design ideas, or "how do I…?" instead of an issue.
+  - name: Architecture docs
+    url: https://github.com/KooshaPari/Configra/blob/main/docs/ARCHITECTURE.md
+    about: Read this before opening a feature request that touches the core API.
+  - name: CHANGELOG
+    url: https://github.com/KooshaPari/Configra/blob/main/CHANGELOG.md
+    about: Check existing changes before reporting "missing" features.
+
+# Auto-link references to issues/PRs in commit messages and PR bodies
+references:
+  - title: ADR-022 — config consolidation (Rust/TS edge split)
+    href: https://github.com/KooshaPari/phenotype-org-governance/blob/main/ADR/ADR-022.md
+  - title: ADR-031 — Configra is the canonical config substrate
+    href: https://github.com/KooshaPari/phenotype-org-governance/blob/main/ADR/ADR-031.md
+  - title: ADR-035 — Configra migration gates
+    href: https://github.com/KooshaPari/phenotype-org-governance/blob/main/ADR/ADR-035.md

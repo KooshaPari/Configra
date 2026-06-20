@@ -1,5 +1,10 @@
 # Configra — CI workflow
 # SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# Pinned actions: every `uses:` entry below is pinned to a commit SHA.
+# See https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions
+#
+# Local equivalent: `just ci`
 
 name: CI
 
@@ -8,62 +13,117 @@ on:
     branches: [main, "feat/**", "chore/**", "fix/**"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_NET_RETRY: 10
   RUSTFLAGS: "-D warnings"
   RUSTDOCFLAGS: "-D warnings"
+  RUST_BACKTRACE: "1"
+
+permissions:
+  contents: read
 
 jobs:
-  # ─── Quality gate: fmt + clippy + test + deny ──────────────────────────────
+  # ─── Quality gate: fmt + clippy + test ─────────────────────────────────────
   quality:
-    name: Quality gate (fmt + clippy + test + deny)
-    runs-on: ubuntu-latest
+    name: Quality gate (${{ matrix.os }} / rust ${{ matrix.rust }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:   [ubuntu-latest]
+        rust: [stable]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master / stable
         with:
           components: rustfmt, clippy
 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Rust cache
+        uses: Swatinem/rust-cache@5cb072d7354962be830356aa6b146f7612846014 # v2.7.5
+
+      - name: Show toolchain info
+        run: |
+          rustc --version
+          cargo --version
+          cargo fmt --version
+          cargo clippy --version
 
       - name: cargo fmt --check
-        run: cargo fmt --check
+        run: cargo fmt --all -- --check
 
-      - name: cargo clippy
-        run: cargo clippy --workspace
+      - name: cargo clippy (workspace, all-targets, -D warnings)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
-      - name: cargo test
-        run: cargo test --workspace
+      - name: cargo test (workspace)
+        run: cargo test --workspace --locked --all-features
+
+  # ─── MSRV (minimum supported Rust version) ─────────────────────────────────
+  msrv:
+    name: MSRV check (rust 1.75)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install MSRV toolchain (1.75)
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master / stable
+        with:
+          toolchain: 1.75.0
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@5cb072d7354962be830356aa6b146f7612846014 # v2.7.5
+
+      - name: cargo check (MSRV)
+        run: cargo check --workspace --locked --all-targets
+
+  # ─── Doc build (also enforces doc-warnings = deny) ─────────────────────────
+  docs:
+    name: cargo doc (no-deps, -D warnings)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master / stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@5cb072d7354962be830356aa6b146f7612846014 # v2.7.5
+
+      - name: cargo doc
+        run: cargo doc --workspace --no-deps --locked
 
   # ─── Security audit (cargo-deny) ───────────────────────────────────────────
   deny:
-    name: Deny check (advisories + licenses + sources)
+    name: Deny check (advisories + licenses + sources + bans)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
-          arguments: --all-features
+          arguments: --workspace
 
-  # ─── MSRV check ────────────────────────────────────────────────────────────
-  msrv:
-    name: MSRV check (1.75)
+  # ─── ci-success marker ─────────────────────────────────────────────────────
+  success:
+    name: CI success
+    needs: [quality, msrv, docs, deny]
+    if: success()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install MSRV toolchain
-        uses: dtolnay/rust-toolchain@1.75
-
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: cargo check (MSRV)
-        run: cargo check --workspace
+      - name: All gates green
+        run: echo "All CI gates passed: fmt + clippy + test + MSRV + docs + deny."
