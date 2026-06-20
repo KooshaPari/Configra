@@ -1,0 +1,53 @@
+# Configra — LLM Context
+
+Configra is the **canonical Rust configuration substrate** for the Phenotype
+organization. Key facts:
+
+- **Primary language:** Rust (Cargo workspace, resolver 2)
+- **Workspace members:** `pheno-config`, `config-schema`,
+  `phenotype-config-loader`, `settly`
+- **TypeScript edge layer:** `@phenotype/config-ts` in `typescript/` (was
+  `Conft/typescript/`)
+- **Features:** layered config (env/TOML/CLI), feature flags, secrets
+  (AES-256-GCM), audit trail, point-in-time restore, CLI (`phenoctl`,
+  clap), TUI (ratatui)
+- **Persistence:** SQLite with auto-migration
+- **Crypto:** AES-256-GCM via `aes-gcm`
+- **License:** MIT OR Apache-2.0 (dual)
+- **ADRs governing:** ADR-022 (Rust/TS split), ADR-031 (canonical name),
+  ADR-035 (migration gates), ADR-040 (coverage)
+- **Status:** ACTIVE, pre-1.0
+
+## Quick start
+
+```bash
+cargo build --workspace
+cargo test --workspace
+cargo install --path crates/pheno-cli
+phenoctl config set app.name "My App"
+```
+
+## When to use Configra
+
+Use Configra when you need:
+
+- 12-factor layered config (defaults → file → env → CLI)
+- Encrypted secrets at rest
+- Audit trail with point-in-time restore
+- Type-safe config with schema validation
+- Feature flag lifecycle
+- CLI for ops/automation
+
+## When NOT to use Configra
+
+- **Distributed runtime config sync** — use `pheno-events` for that.
+- **Hot-reload across processes** — not supported yet (post-1.0).
+- **Config-as-a-service** — deferred.
+
+## Related
+
+- `KooshaPari/phenotype-config` — DEPRECATED, archive 2026-07-15 (ADR-031)
+- `KooshaPari/pheno-config` — absorbed 2026-06-18 (ADR-031)
+- `KooshaPari/Conft` — TS edge layer source (now in `typescript/`)
+- `KooshaPari/settly-*` — fully absorbed 2026-06-18 (ADR-017)
+- `KooshaPari/pheno-tracing` — observability substrate (used by Configra)

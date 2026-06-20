@@ -1,0 +1,58 @@
+# Configra — Release Attestation (cosign + in-toto)
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# STUB: Build + cosign sign + in-toto attestation for release artifacts.
+# See docs/slsa.md for normative policy.
+#
+# TODO(post-T10.1): Wire to actual cargo package output and attach .att to GH Release.
+
+name: Release Attestation
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write      # required for cosign keyless (Fulcio)
+  packages: write      # required for GHCR push (if used)
+
+jobs:
+  build:
+    name: Build + Sign + Attest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release artifacts
+        run: |
+          cargo build --workspace --release --locked
+          cargo package --workspace --no-verify --list  # dry-run to enumerate
+          # NOTE: actual `cargo package --allow-dirty` would produce tarballs here
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Cosign keyless sign (placeholder)
+        run: |
+          echo "TODO: sign each cargo package tarball with cosign keyless"
+          echo "Example: cosign sign-blob --output-signature <art>.sig <art> <art>.intoto.jsonl"
+          # cosign sign-blob --yes \
+          #   --output-signature target/release/configra.sig \
+          #   --output-certificate target/release/configra.cert \
+          #   target/release/configra.tar.gz
+
+      - name: Upload attestation to GitHub Release (placeholder)
+        run: |
+          echo "TODO: attach .intoto.jsonl + .sig to GitHub Release via gh release upload"
+          # gh release upload "$GITHUB_REF_NAME" \
+          #   target/release/*.intoto.jsonl \
+          #   target/release/*.sig \
+          #   --clobber

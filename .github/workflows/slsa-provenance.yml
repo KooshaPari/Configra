@@ -1,0 +1,61 @@
+# Configra — SLSA Provenance (slsa-github-generator)
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# STUB: Generate SLSA Build L3 provenance using slsa-github-generator.
+# See docs/slsa.md for normative policy.
+#
+# TODO(post-T10.1): Replace `cargo build` placeholder with the actual
+#   cargo package workflow that produces release artifacts.
+
+name: SLSA Provenance
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write      # required for OIDC token exchange
+  packages: write      # required if pushing to GHCR
+
+jobs:
+  provenance:
+    name: Generate SLSA provenance
+    runs-on: ubuntu-latest
+    outputs:
+      provenance: ${{ steps.genprov.outputs.provenance }}
+    steps:
+      - name: Generate SLSA provenance (placeholder)
+        id: genprov
+        run: |
+          echo "TODO: invoke slsa-framework/slsa-github-generator"
+          echo ""
+          echo "Reference implementation:"
+          echo "  uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0"
+          echo "  with:"
+          echo "    image: target/release/configra"
+          echo "    digest: \${{ steps.build.outputs.digest }}"
+          echo "    tag: \${{ github.ref_name }}"
+          echo ""
+          echo "For non-container artifacts (cargo crates), use the generic_provenance workflow:"
+          echo "  uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0"
+          echo ""
+          # Emit a placeholder provenance path so downstream jobs can attach it.
+          echo "provenance=target/release/configra.intoto.jsonl" >> "$GITHUB_OUTPUT"
+
+  attach:
+    name: Attach provenance to Release
+    needs: provenance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download provenance artifact (placeholder)
+        run: |
+          echo "TODO: download ${{ needs.provenance.outputs.provenance }}"
+          echo "TODO: attach to GitHub Release via gh release upload"
+
+      - name: Upload to GitHub Release (placeholder)
+        run: |
+          echo "TODO: gh release upload \"$GITHUB_REF_NAME\" target/release/*.intoto.jsonl --clobber"
