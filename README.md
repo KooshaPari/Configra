@@ -134,6 +134,54 @@ Configra/
 └── Cargo.lock                      # Dependency lock
 ```
 
+## Tier-2 Substrate Layout (T16, 2026-06-20)
+
+Configra is a **tier-2 library substrate** per ADR-023 (agent-effort
+governance) + ADR-040 (test-coverage gates per tier). The canonical
+four-crate split, each with its own README, CHANGELOG, AGENTS, and
+≥ 80 % line coverage, is:
+
+```
+Configra/                                  v0.4.0 (workspace)
+├── crates/
+│   ├── pheno-config/                      typed runtime Config + ConfigBuilder
+│   │   ├── README.md · CHANGELOG.md · AGENTS.md · llms.txt
+│   │   └── (env-var cascade, TOML+env overlay, combine())
+│   ├── settly/                            settings lifecycle (validation, migration)
+│   │   ├── README.md · CHANGELOG.md · AGENTS.md
+│   │   └── (hexagonal: domain / application / adapters / infrastructure)
+│   ├── config-schema/                     JSON schema validation primitives
+│   │   ├── README.md · CHANGELOG.md · AGENTS.md   ← T16 NEW
+│   │   └── (SchemaField + ConfigSchema + SchemaError)
+│   └── phenotype-config-loader/           generic JSON/TOML file loaders
+│       ├── README.md · CHANGELOG.md · AGENTS.md   ← T16 NEW
+│       └── (load_json<T>, load_toml<T>, ConfigLoadError)
+├── typescript/packages/conft/             TS edge layer (drained from Conft, PR-#47)
+├── ABSORBED-FROM/                         index of the 8 source repos drained here
+└── docs/migrations/                       per-source migration notes
+```
+
+**Tier-2 quality bar (every sub-crate):**
+
+| Artifact | Status (2026-06-20) | Owner |
+| --- | --- | --- |
+| `README.md` | ✅ all 4 sub-crates | T16 |
+| `CHANGELOG.md` | ✅ all 4 sub-crates | T16 |
+| `AGENTS.md` | ✅ all 4 sub-crates | T16 |
+| Coverage ≥ 80 % | ✅ library tier (ADR-040) | ongoing |
+| `cargo clippy -- -D warnings` | ✅ | CI |
+| `cargo audit` | ✅ weekly | CI |
+
+**Why four crates, not one?** Each sub-crate has a distinct concern:
+runtime `Config` (pheno-config) vs. settings lifecycle (settly) vs.
+field-shape validation (config-schema) vs. raw file loading
+(phenotype-config-loader). Splitting keeps each surface minimal and
+lets downstream consumers depend on the smallest primitive they need.
+
+See `docs/migrations/` for per-source-repo migration notes and
+`ABSORBED-FROM/` for the index of all 8 source repos drained into
+Configra.
+
 ## Related Phenotype Projects
 
 - **[AgilePlus](../AgilePlus)** — Specification and work tracking
