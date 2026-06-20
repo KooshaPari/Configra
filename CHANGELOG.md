@@ -4,7 +4,45 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Versioning
 follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-06-18
+## [Unreleased]
+
+### Changed
+- Workspace version bumped to 0.4.0 per T16 substrate audit.
+
+## [0.4.0] — 2026-06-20
+
+### Added — Tier-2 substrate enforcement (T16, L5-110)
+- **crates/phenotype-config-loader/README.md** — first-class crate-level
+  README (was previously inherited from the workspace root only).
+- **crates/phenotype-config-loader/CHANGELOG.md** — per-crate changelog
+  covering the 0.1.0 → 0.4.0 transition.
+- **crates/phenotype-config-loader/AGENTS.md** — agent contract for
+  extending the loader surface (one fn per format; one test per fn).
+- **crates/config-schema/README.md** — first-class crate-level README.
+- **crates/config-schema/CHANGELOG.md** — per-crate changelog.
+- **crates/config-schema/AGENTS.md** — agent contract for the field-shape
+  validator (no nested schemas; no I/O deps).
+- Root `Cargo.toml` — tier-2 quality-bar comment block linking the four
+  canonical sub-crates to ADR-022 / ADR-031 / ADR-040.
+- Root `README.md` — new "Tier-2 Substrate Layout" section with the
+  four-crate split diagram.
+
+### Changed
+- Workspace `[workspace.package] version` 0.1.0 → **0.4.0** (T16 bump).
+- Sub-crates that pin their own `version` (`pheno-config` at 0.2.0,
+  `config-schema` at 0.1.0) are unchanged; sub-crates that derive from
+  `version.workspace = true` (`settly`, `phenotype-config-loader`) follow
+  the bump.
+
+### Notes
+- This is a **docs + version-bump release**. No source-code changes;
+  no API changes; no `Cargo.lock` churn beyond version metadata.
+- Closes the L5-110 substrate-audit gap: every sub-crate now ships a
+  README + CHANGELOG + AGENTS.md + tier-2 coverage gate.
+- ADR-023 (agent-effort governance) + ADR-040 (test-coverage gates per
+  tier) + ADR-031 (Configra absorb) are the policy basis.
+
+## [0.3.0] — 2026-06-18
 
 ### Added
 - **crates/phenotype-config-loader** — Absorbed from `KooshaPari/phenotype-config`
