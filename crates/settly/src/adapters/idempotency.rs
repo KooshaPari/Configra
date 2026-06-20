@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
+use configra_config::ConfigraConfig;
 
 use crate::domain::errors::ConfigError;
 use crate::domain::idempotency::{
@@ -29,9 +30,9 @@ impl InMemoryIdempotencyStore {
         Self { inner: Arc::new(Mutex::new(HashMap::new())), ttl }
     }
 
-    /// Default TTL: 24 hours.
+    /// Default TTL from `configra_config::ConfigraConfig` (default: 86400 s = 24 h).
     pub fn default_ttl() -> Self {
-        Self::new(Duration::from_secs(86_400))
+        Self::new(Duration::from_secs(ConfigraConfig::default().idempotency.default_ttl_secs))
     }
 }
 

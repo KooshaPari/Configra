@@ -1,0 +1,69 @@
+# Configra — CI workflow
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**", "chore/**", "fix/**"]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  RUSTDOCFLAGS: "-D warnings"
+
+jobs:
+  # ─── Quality gate: fmt + clippy + test + deny ──────────────────────────────
+  quality:
+    name: Quality gate (fmt + clippy + test + deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt --check
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace
+
+      - name: cargo test
+        run: cargo test --workspace
+
+  # ─── Security audit (cargo-deny) ───────────────────────────────────────────
+  deny:
+    name: Deny check (advisories + licenses + sources)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features
+
+  # ─── MSRV check ────────────────────────────────────────────────────────────
+  msrv:
+    name: MSRV check (1.75)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MSRV toolchain
+        uses: dtolnay/rust-toolchain@1.75
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check (MSRV)
+        run: cargo check --workspace

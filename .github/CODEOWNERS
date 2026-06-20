@@ -1,0 +1,21 @@
+# Configra — CODEOWNERS
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# Each line is a file pattern followed by one or more owners.
+# Order matters: the last matching pattern takes precedence.
+
+# Default owner for everything in the repo
+* @KooshaPari
+
+# Core Rust workspace
+/crates/    @KooshaPari
+
+# GitHub Actions and CI configuration
+/.github/   @KooshaPari
+
+# Governance and documentation
+/AGENTS.md      @KooshaPari
+/SPEC.md        @KooshaPari
+/ARCHITECTURE.md @KooshaPari
+/justfile       @KooshaPari
+/deny.toml      @KooshaPari

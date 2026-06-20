@@ -1,39 +1,44 @@
 //! Multi-source cascade example for pheno-config.
 //!
-//! Demonstrates the 5-layer 12-factor cascade:
-//!   1. Hard-coded defaults (in code)
-//!   2. `defaults.toml` shipped with the binary
-//!   3. `/etc/myapp/config.toml` (system-wide)
-//!   4. `./config.toml` (per-deployment)
-//!   5. Environment variables (highest priority)
+//! Demonstrates the 12-factor config cascade using `combine()`:
+//!   TOML file (lowest priority) ← Environment vars (highest priority)
 //!
 //! Run with:
 //!   cargo run --example cascade
 //!
-//! Try overrides:
-//!   PHENO_CONFIG__SERVER__PORT=9090 cargo run --example cascade
+//! Override with env:
+//!   PHENO_CONFIG_PORT=9090 cargo run --example cascade
 
-use pheno_config::{Config, ConfigBuilder, Source};
+use pheno_config::combine;
+use std::fs;
+use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config: Config = ConfigBuilder::new()
-        // Layer 1: hard-coded defaults (set in code below)
-        .default()
-        // Layer 2: defaults.toml (next to the binary)
-        .source(Source::Toml("defaults.toml"))
-        // Layer 3: /etc/myapp/config.toml (system-wide; optional)
-        .source(Source::OptionalToml("/etc/myapp/config.toml"))
-        // Layer 4: ./config.toml (per-deployment; optional)
-        .source(Source::OptionalToml("config.toml"))
-        // Layer 5: env vars (highest priority)
-        .source(Source::EnvPrefix("PHENO_CONFIG"))
-        .build()?;
+    // Write a sample config.toml for demonstration
+    fs::write(
+        "pheno_config_example.toml",
+        r#"
+url = "https://example.com"
+db_path = "/var/lib/app.db"
+port = 8080
+log_level = "info"
+feature_flags = ["alpha", "beta"]
+"#,
+    )?;
+
+    // combine() loads the TOML file first, then overlays env vars
+    // matching the given prefix (PHENO_CONFIG_*). Env vars override
+    // file values when present.
+    let config = combine(Path::new("pheno_config_example.toml"), "PHENO_CONFIG")?;
 
     println!("Resolved config: {:#?}", config);
+    println!(
+        "Field provenance: server.port = {} (env overrides > file > default)",
+        config.port
+    );
 
-    // Show which layer won for each field
-    println!("\nField provenance:");
-    println!("  server.port = {} (env overrides > file > default)", config.server.port);
+    // Cleanup
+    fs::remove_file("pheno_config_example.toml")?;
 
     Ok(())
 }

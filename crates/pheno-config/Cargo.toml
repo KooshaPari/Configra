@@ -32,6 +32,9 @@ toml = { workspace = true }
 # Consumers add `pheno-config = { version = "0.2", features = ["tracing"] }`
 # to opt into the OTLP substrate.
 tracing = { workspace = true, optional = true }
+# Meta-configuration: pull default ports, log levels, and other
+# previously-hardcoded values from configra-config.
+configra-config = { path = "../configra-config" }
 
 [features]
 default = []

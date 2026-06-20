@@ -1,0 +1,31 @@
+{
+  "repo": "Configra",
+  "inferred_tier": "unknown",
+  "violations": [
+    {
+      "rule": "unknown-tier",
+      "severity": "warning",
+      "path": "/Users/kooshapari/CodeProjects/Phenotype/repos/Configra",
+      "detail": "repo name `Configra` does not match any ADR-023 substrate pattern",
+      "remediation": "Rename to one of: pheno-*-lib, phenotype-*-sdk, phenotype-*-framework, or move under federated-service namespace."
+    }
+  ],
+  "passed": [],
+  "warnings": [
+    {
+      "rule": "unknown-tier",
+      "severity": "warning",
+      "path": "/Users/kooshapari/CodeProjects/Phenotype/repos/Configra",
+      "detail": "repo name `Configra` does not match any ADR-023 substrate pattern",
+      "remediation": "Rename to one of: pheno-*-lib, phenotype-*-sdk, phenotype-*-framework, or move under federated-service namespace."
+    }
+  ],
+  "_linter": {
+    "tool": "pheno-framework-lint",
+    "version_implied": "1.0.0",
+    "invocation": "python3 pheno-framework-lint/pheno_framework_lint.py check --path /Users/kooshapari/CodeProjects/Phenotype/repos/Configra",
+    "exit_code": 2,
+    "run_at": "2026-06-19T05:00:00-07:00",
+    "notes": "Linter's ADR-023 naming-convention regex (^(pheno|phenotype)-?[A-Z]...$) does not match `Configra` (no pheno/phenotype prefix; capitalised first letter). This is a known false negative flagged in the L73 rubric — the linter name-pattern predates ADR-031's Configra canonical-name decision. The repo IS the canonical config substrate per ADR-031: the `phenotype-config` repo was absorbed (L5-110, merge 3f12e254), KooshaPari/pheno#238 re-pointed sub-crate CANONICAL.md markers, and 7 prior config-shaped repos (Conft, Settly, pheno-config-local, etc.) live under ABSORBED-FROM/. PROMOTION.md Gate 1/2/3 evaluations document sdk-tier readiness: 2+ polyglot consumers (Rust: pheno-* fleet via pheno-config 0.2.0; TypeScript: typescript/packages; Python: pheno-py-extra config adapters), stable API since pheno-config 0.1.0 (2026-03-25), no breaking changes in 2026 Q1/Q2, CHANGELOG.md present at crates/pheno-config/CHANGELOG.md and crates/settly/CHANGELOG.md. A linter patch (pheno-framework-lint v1.1) to add a passthrough for `Configra` is filed as a follow-up ADR-050 candidate."
+  }
+}

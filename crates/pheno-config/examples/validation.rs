@@ -1,13 +1,12 @@
 //! Validation example for pheno-config.
 //!
-//! Shows how to attach validators that run during `.build()` and produce
-//! structured `Validation` errors via `pheno-errors`.
+//! Shows how to attach validators that produce structured errors
+//! using pheno-config's own `ConfigError` type.
 //!
 //! Run with:
 //!   cargo run --example validation
 
-use pheno_config::{Config, ConfigBuilder, Validate};
-use pheno_errors::AppError;
+use pheno_config::ConfigError;
 
 #[derive(Debug)]
 struct ServerConfig {
@@ -16,25 +15,22 @@ struct ServerConfig {
     max_connections: u32,
 }
 
-impl Validate for ServerConfig {
-    fn validate(&self) -> Result<(), AppError> {
+impl ServerConfig {
+    fn validate(&self) -> Result<(), ConfigError> {
         if self.port < 1024 {
-            return Err(AppError::Validation {
-                field: "server.port".into(),
-                message: format!("port must be >= 1024 (non-privileged), got {}", self.port),
-            });
+            return Err(ConfigError::MissingField(
+                format!("server.port: port must be >= 1024 (non-privileged), got {}", self.port),
+            ));
         }
         if self.host.is_empty() {
-            return Err(AppError::Validation {
-                field: "server.host".into(),
-                message: "host cannot be empty".into(),
-            });
+            return Err(ConfigError::MissingField(
+                "server.host: host cannot be empty".into(),
+            ));
         }
         if self.max_connections == 0 || self.max_connections > 10_000 {
-            return Err(AppError::Validation {
-                field: "server.max_connections".into(),
-                message: format!("max_connections must be 1..=10000, got {}", self.max_connections),
-            });
+            return Err(ConfigError::MissingField(
+                format!("server.max_connections: must be 1..=10000, got {}", self.max_connections),
+            ));
         }
         Ok(())
     }
@@ -57,10 +53,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         max_connections: 100,
     };
     match bad.validate() {
-        Err(AppError::Validation { field, message }) => {
-            eprintln!("✗ Validation failed on {}: {}", field, message);
+        Err(ConfigError::MissingField(msg)) => {
+            eprintln!("✗ Validation failed: {}", msg);
         }
-        other => panic!("expected Validation error, got {:?}", other),
+        other => panic!("expected ConfigError::MissingField, got {:?}", other),
     }
 
     Ok(())

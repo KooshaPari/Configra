@@ -13,7 +13,8 @@
 //!    [`ConfigError::IoError`]; malformed JSON or type mismatches
 //!    map to [`ConfigError::ParseError`].
 //! 3. [`ConfigBuilder`] — programmatic construction with sensible
-//!    defaults (`port = 8080`, `log_level = "info"`,
+//!    defaults sourced from `configra_config::ConfigraConfig`
+//!    (`port = 8080`, `log_level = "info"`,
 //!    `feature_flags = Vec::new()`). Used by tests and by consumers
 //!    that already have all values in memory.
 //!
@@ -61,6 +62,7 @@
 use std::env;
 use std::path::Path;
 
+use configra_config::ConfigraConfig;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -222,7 +224,7 @@ pub fn load_from_env(prefix: &str) -> Result<Config> {
             field: env_name(prefix, FIELD_PORT),
             message: e.to_string(),
         })?,
-        Err(env::VarError::NotPresent) => 8080_u16,
+        Err(env::VarError::NotPresent) => ConfigraConfig::default().service.default_port,
         Err(env::VarError::NotUnicode(_)) => {
             return Err(ConfigError::ParseError {
                 field: env_name(prefix, FIELD_PORT),
@@ -234,8 +236,8 @@ pub fn load_from_env(prefix: &str) -> Result<Config> {
     // Optional with default: LOG_LEVEL
     let log_level = match env::var(env_name(prefix, FIELD_LOG_LEVEL)) {
         Ok(v) if !v.is_empty() => v,
-        Ok(_) => String::from("info"),
-        Err(env::VarError::NotPresent) => String::from("info"),
+        Ok(_) => ConfigraConfig::default().service.default_log_level.clone(),
+        Err(env::VarError::NotPresent) => ConfigraConfig::default().service.default_log_level.clone(),
         Err(env::VarError::NotUnicode(_)) => {
             return Err(ConfigError::ParseError {
                 field: env_name(prefix, FIELD_LOG_LEVEL),
@@ -562,8 +564,8 @@ impl ConfigBuilder {
     pub fn new() -> Self {
         Self {
             url: None,
-            port: 8080,
-            log_level: String::from("info"),
+            port: ConfigraConfig::default().service.default_port,
+            log_level: ConfigraConfig::default().service.default_log_level.clone(),
             db_path: None,
             feature_flags: Vec::new(),
         }
@@ -576,14 +578,14 @@ impl ConfigBuilder {
         self
     }
 
-    /// Sets the service listen port. Default `8080`.
+    /// Sets the service listen port. Default from `configra_config::ConfigraConfig`.
     #[must_use]
     pub fn port(mut self, port: u16) -> Self {
         self.port = port;
         self
     }
 
-    /// Sets the tracing/log filter level. Default `"info"`.
+    /// Sets the tracing/log filter level. Default from `configra_config::ConfigraConfig`.
     #[must_use]
     pub fn log_level(mut self, log_level: impl Into<String>) -> Self {
         self.log_level = log_level.into();

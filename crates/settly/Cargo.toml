@@ -29,7 +29,7 @@ anyhow = { workspace = true }
 # Utilities
 uuid = { workspace = true }
 chrono = { workspace = true }
-validator = { version = "0.18", features = ["derive"] }  # not in workspace
+validator = { version = "0.20", features = ["derive"] }  # not in workspace
 
 # Database — not in workspace; standalone
 tokio-postgres = "0.7"
@@ -40,6 +40,10 @@ redis = { version = "1.2", features = ["tokio-comp", "connection-manager"] }
 
 # Logging
 tracing = { workspace = true }
+
+# Meta-configuration: pull default TTLs, retry limits, and other
+# previously-hardcoded values from configra-config.
+configra-config = { path = "../configra-config" }
 
 [dev-dependencies]
 tempfile = { workspace = true }

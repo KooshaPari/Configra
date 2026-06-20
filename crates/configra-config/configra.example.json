@@ -1,0 +1,15 @@
+{
+  "service": {
+    "default_port": 8080,
+    "default_log_level": "info",
+    "db_path_template": "/var/lib/{name}.db"
+  },
+  "idempotency": {
+    "default_ttl_secs": 86400,
+    "default_max_retries": 3
+  },
+  "watcher": {
+    "poll_interval_ms": 1000,
+    "enabled": true
+  }
+}

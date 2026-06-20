@@ -1,36 +1,25 @@
 //! Quickstart example for pheno-config.
 //!
-//! Demonstrates the 12-factor config cascade: defaults → TOML file → env vars.
+//! Demonstrates programmatic config construction using `ConfigBuilder`.
 //!
 //! Run with:
 //!   cargo run --example quickstart
-//!
-//! Override with env:
-//!   PHENO_CONFIG__DATABASE__URL=postgres://prod cargo run --example quickstart
-//!
-//! Create a config.toml in the same directory:
-//!   [database]
-//!   url = "postgres://localhost/dev"
-//!   max_connections = 5
-//!   [server]
-//!   port = 8080
 
 use pheno_config::{Config, ConfigBuilder};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 1. Start with defaults
+    // Build a Config with programmatic defaults
     let config: Config = ConfigBuilder::new()
-        // 2. Layer in a TOML file (if present)
-        .load_toml("config.toml")?
-        // 3. Override with env vars (PHENO_CONFIG__SECTION__KEY)
-        .load_env("PHENO_CONFIG")?
-        // 4. Build (validation happens here)
+        .url("https://example.com")
+        .db_path("/var/lib/app.db")
+        .port(8080)
+        .log_level("info")
+        .feature_flag("alpha")
         .build()?;
 
     println!("Loaded config: {:#?}", config);
-    println!("Server port: {}", config.server.port);
-    println!("DB URL: {}", config.database.url);
-    println!("DB max connections: {}", config.database.max_connections);
+    println!("Server port: {}", config.port);
+    println!("DB URL: {}", config.url);
 
     Ok(())
 }

@@ -1,0 +1,20 @@
+[package]
+name = "configra-config"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Meta-configuration for the Configra configuration substrate: default ports, log levels, idempotency TTLs, watcher intervals, and DB path templates loaded from env vars, files, or code."
+repository = "https://github.com/KooshaPari/Configra"
+keywords = ["config", "meta-config", "configra", "settings"]
+categories = ["config", "rust-patterns"]
+rust-version = "1.75"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+thiserror = "1.0"
+
+[dev-dependencies]
+tempfile = { workspace = true }

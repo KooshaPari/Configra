@@ -1,0 +1,26 @@
+# configra.toml
+# Example configuration for Configra.
+# This file is the canonical "documented defaults" — all keys are optional.
+#
+# Copy to configra.toml in your project root or point to it via
+# ConfigraConfig::from_file().
+
+[service]
+# Default TCP port for services
+default_port = 8080
+# Default tracing/log level
+default_log_level = "info"
+# Template for database paths ({name} is replaced at runtime)
+db_path_template = "/var/lib/{name}.db"
+
+[idempotency]
+# TTL in seconds for cached idempotency results (86400 = 24 hours)
+default_ttl_secs = 86400
+# Maximum retry attempts for idempotent submissions
+default_max_retries = 3
+
+[watcher]
+# Polling interval in milliseconds for file-change watchers
+poll_interval_ms = 1000
+# Enable file-watching sources by default
+enabled = true

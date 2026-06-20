@@ -1,0 +1,22 @@
+# Configra — LLM Context
+
+Configra is the canonical Rust configuration substrate for the Phenotype
+organization. Key facts:
+
+- Primary: Rust (Cargo workspace, resolver 2)
+- Crates: pheno-config (core), config-schema (validation), settly (legacy)
+- Features: layered config (env/TOML/CLI), feature flags, secrets (AES-256-GCM),
+  audit trail, point-in-time restore, CLI (clap), TUI (ratatui)
+- Persistence: SQLite with auto-migration
+- Bindings: TypeScript `@phenotype/config-ts` in Conft
+- ADRs: ADR-022 (Rust/TS split), ADR-031 (canonical name), ADR-035 (migration)
+- Status: ACTIVE, pre-1.0
+
+Quick start:
+```bash
+cargo build --workspace
+cargo test --workspace
+phenoctl config set app.name "My App"
+```
+
+Related: Conft (../Conft) — TS edge layer
