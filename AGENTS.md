@@ -1,6 +1,6 @@
 # AGENTS.md — Configra
 
-**Date:** 2026-06-19
+**Date:** 2026-06-20
 **Status:** ACTIVE
 **Template:** v8.1
 
@@ -17,7 +17,7 @@ workflows.
 
 - **Language:** Rust (primary)
 - **Build system:** Cargo workspace, resolver 2
-- **Key crates:** pheno-config, config-schema, settly (legacy)
+- **Key crates:** pheno-config, config-schema, settly (absorbed from standalone repo)
 - **Frameworks:** Clap (CLI), Ratatui (TUI)
 - **Persistence:** SQLite with auto-migration
 - **Cryptography:** AES-256-GCM for secrets
@@ -62,6 +62,7 @@ phenoctl secrets set API_KEY
 - **Conft** (`../Conft`) — TypeScript edge layer (Zod-validated bindings)
 - **pheno-config** (`../pheno-config`) — legacy config crate (deprecated)
 - **phenotype-config** (`../phenotype-config`) — legacy config repo (ARCHIVED)
+- **Settly** (`../Settly`) — standalone settly repo (ARCHIVED; absorbed into `crates/settly/`)
 
 ## Architecture
 
