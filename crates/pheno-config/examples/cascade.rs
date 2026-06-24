@@ -33,7 +33,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Show which layer won for each field
     println!("\nField provenance:");
-    println!("  server.port = {} (env overrides > file > default)", config.server.port);
+    println!(
+        "  server.port = {} (env overrides > file > default)",
+        config.server.port
+    );
 
     Ok(())
 }

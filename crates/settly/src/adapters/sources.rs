@@ -1,9 +1,11 @@
 //! Configuration source adapters.
 
-use crate::domain::{errors::ConfigError, sources::Source, Config, ConfigValue};
-use async_trait::async_trait;
 use std::collections::HashMap;
 use std::path::Path;
+
+use async_trait::async_trait;
+
+use crate::domain::{errors::ConfigError, sources::Source, Config, ConfigValue};
 
 /// File-based configuration source.
 pub struct FileSource {

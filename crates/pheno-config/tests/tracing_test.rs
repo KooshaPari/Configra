@@ -13,9 +13,7 @@ use tracing_test::traced_test;
 fn build_emits_span() {
     let span = tracing::info_span!("config_build");
     let _enter = span.enter();
-    let result = ConfigBuilder::new()
-        .load_env("PHENO_CONFIG")
-        .build();
+    let result = ConfigBuilder::new().load_env("PHENO_CONFIG").build();
     tracing::info!(?result, "build complete");
     // Either Ok or an env error is fine; we just want to verify the span emit path
     assert!(logs_contain("build complete"));

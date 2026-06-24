@@ -1,7 +1,8 @@
 //! Configuration layer management.
 
-use super::config::Config;
 use serde::{Deserialize, Serialize};
+
+use super::config::Config;
 
 /// Layer priority levels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
