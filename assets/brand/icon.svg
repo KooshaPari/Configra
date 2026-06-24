@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Configra brand icon">
+  <title>Configra</title>
+  <desc>Hexagonal gear with config parameter panel. Keycap palette midnight + teal with cyan accent.</desc>
+  <defs>
+    <linearGradient id="cfg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="50%" stop-color="#5ed4d3"/>
+      <stop offset="100%" stop-color="#7ebab5"/>
+    </linearGradient>
+    <linearGradient id="cfg-tooth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#7ebab5" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="cfg-glow" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.45"/>
+      <stop offset="60%" stop-color="#0e7490" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#090a0c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cfg-hub" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e0f7ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="cfg-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.55"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Outer gear-hexagon path: 6-edge hexagon with semicircle bumps at the middle of each edge -->
+    <path id="cfg-gear" d="
+      M 156 64
+      L 356 64
+      A 22 22 0 0 1 378 86
+      L 448 156
+      A 22 22 0 0 1 460 178
+      L 460 334
+      A 22 22 0 0 1 448 356
+      L 378 426
+      A 22 22 0 0 1 356 448
+      L 156 448
+      A 22 22 0 0 1 134 426
+      L 64 356
+      A 22 22 0 0 1 52 334
+      L 52 178
+      A 22 22 0 0 1 64 156
+      L 134 86
+      A 22 22 0 0 1 156 64
+      Z"/>
+  </defs>
+
+  <!-- Midnight background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="#090a0c"/>
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#cfg-glow)"/>
+
+  <!-- Subtle dotted background -->
+  <g fill="#22d3ee" opacity="0.08">
+    <circle cx="80"  cy="80"  r="2"/>
+    <circle cx="160" cy="80"  r="2"/>
+    <circle cx="256" cy="80"  r="2"/>
+    <circle cx="352" cy="80"  r="2"/>
+    <circle cx="432" cy="80"  r="2"/>
+    <circle cx="80"  cy="160" r="2"/>
+    <circle cx="432" cy="160" r="2"/>
+    <circle cx="80"  cy="256" r="2"/>
+    <circle cx="432" cy="256" r="2"/>
+    <circle cx="80"  cy="352" r="2"/>
+    <circle cx="432" cy="352" r="2"/>
+    <circle cx="80"  cy="432" r="2"/>
+    <circle cx="160" cy="432" r="2"/>
+    <circle cx="256" cy="432" r="2"/>
+    <circle cx="352" cy="432" r="2"/>
+    <circle cx="432" cy="432" r="2"/>
+  </g>
+
+  <!-- Outer gear hexagon -->
+  <g filter="url(#cfg-shadow)">
+    <use href="#cfg-gear" fill="url(#cfg-grad)" fill-opacity="0.32" stroke="url(#cfg-tooth)" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Inner clean hexagon, rotated 30deg via transform on the polygon points -->
+  <polygon points="256,128 384,200 384,344 256,416 128,344 128,200"
+           fill="#0d1318" fill-opacity="0.72"
+           stroke="#22d3ee" stroke-width="1.5" stroke-opacity="0.55" stroke-linejoin="round"/>
+  <!-- Inner rotated hex overlay (subtle) -->
+  <polygon points="256,160 352,216 352,328 256,384 160,328 160,216"
+           fill="none" stroke="#7ebab5" stroke-width="1" stroke-opacity="0.35" stroke-linejoin="round" transform="rotate(30 256 256)"/>
+
+  <!-- Config parameter panel: 3 horizontal lines + 3 toggle/knob dots -->
+  <g>
+    <!-- Line 1 -->
+    <line x1="176" y1="218" x2="316" y2="218" stroke="#7ebab5" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+    <circle cx="332" cy="218" r="10" fill="#22d3ee"/>
+    <circle cx="332" cy="218" r="4"  fill="#0d1318"/>
+
+    <!-- Line 2 -->
+    <line x1="176" y1="262" x2="316" y2="262" stroke="#7ebab5" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+    <circle cx="332" cy="262" r="10" fill="#22d3ee"/>
+    <circle cx="332" cy="262" r="4"  fill="#0d1318"/>
+
+    <!-- Line 3 -->
+    <line x1="176" y1="306" x2="316" y2="306" stroke="#7ebab5" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+    <circle cx="332" cy="306" r="10" fill="#22d3ee"/>
+    <circle cx="332" cy="306" r="4"  fill="#0d1318"/>
+
+    <!-- Left label ticks -->
+    <g fill="#22d3ee" opacity="0.7">
+      <rect x="156" y="214" width="6" height="8" rx="1.5"/>
+      <rect x="156" y="258" width="6" height="8" rx="1.5"/>
+      <rect x="156" y="302" width="6" height="8" rx="1.5"/>
+    </g>
+  </g>
+
+  <!-- Center hub -->
+  <circle cx="256" cy="368" r="22" fill="url(#cfg-hub)"/>
+  <circle cx="256" cy="368" r="10" fill="#22d3ee"/>
+  <circle cx="256" cy="368" r="3.5" fill="#0d1318"/>
+
+  <!-- Highlight reflections on the gear teeth -->
+  <g fill="#ffffff" opacity="0.18">
+    <ellipse cx="220" cy="80"  rx="48" ry="6"/>
+    <ellipse cx="380" cy="120" rx="32" ry="5" transform="rotate(60 380 120)"/>
+  </g>
+
+  <!-- Corner accents -->
+  <g fill="#22d3ee" opacity="0.55">
+    <rect x="40"  y="40"  width="14" height="3"  rx="1.5"/>
+    <rect x="40"  y="40"  width="3"  height="14" rx="1.5"/>
+    <rect x="458" y="40"  width="14" height="3"  rx="1.5"/>
+    <rect x="469" y="40"  width="3"  height="14" rx="1.5"/>
+    <rect x="40"  y="469" width="14" height="3"  rx="1.5"/>
+    <rect x="40"  y="458" width="3"  height="14" rx="1.5"/>
+    <rect x="458" y="469" width="14" height="3"  rx="1.5"/>
+    <rect x="469" y="458" width="3"  height="14" rx="1.5"/>
+  </g>
+</svg>

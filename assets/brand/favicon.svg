@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Configra favicon">
+  <title>Configra</title>
+  <defs>
+    <linearGradient id="cfgfg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#7ebab5"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="6" fill="#090a0c"/>
+  <path d="M 10 4 L 22 4 A 2 2 0 0 1 24 6 L 28 10 A 2 2 0 0 1 30 12 L 30 20 A 2 2 0 0 1 28 22 L 24 26 A 2 2 0 0 1 22 28 L 10 28 A 2 2 0 0 1 8 26 L 4 22 A 2 2 0 0 1 2 20 L 2 12 A 2 2 0 0 1 4 10 L 8 6 A 2 2 0 0 1 10 4 Z"
+        fill="url(#cfgfg)" fill-opacity="0.35" stroke="url(#cfgfg)" stroke-width="0.8" stroke-linejoin="round"/>
+  <polygon points="16,9 23,13 23,21 16,25 9,21 9,13" fill="#0d1318" stroke="#22d3ee" stroke-width="0.6"/>
+  <line x1="12" y1="14" x2="20" y2="14" stroke="#7ebab5" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="12" y1="17" x2="20" y2="17" stroke="#7ebab5" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="12" y1="20" x2="20" y2="20" stroke="#7ebab5" stroke-width="1.2" stroke-linecap="round"/>
+</svg>

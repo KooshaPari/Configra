@@ -33,7 +33,10 @@ impl Validate for ServerConfig {
         if self.max_connections == 0 || self.max_connections > 10_000 {
             return Err(AppError::Validation {
                 field: "server.max_connections".into(),
-                message: format!("max_connections must be 1..=10000, got {}", self.max_connections),
+                message: format!(
+                    "max_connections must be 1..=10000, got {}",
+                    self.max_connections
+                ),
             });
         }
         Ok(())
