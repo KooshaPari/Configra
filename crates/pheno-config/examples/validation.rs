@@ -20,10 +20,7 @@ fn validate(cfg: &pheno_config::Config) -> Result<(), ConfigError> {
     if cfg.port < 1024 {
         return Err(ConfigError::ParseError {
             field: "PORT".to_owned(),
-            message: format!(
-                "port must be >= 1024 (non-privileged), got {}",
-                cfg.port
-            ),
+            message: format!("port must be >= 1024 (non-privileged), got {}", cfg.port),
         });
     }
     if cfg.log_level.is_empty() {

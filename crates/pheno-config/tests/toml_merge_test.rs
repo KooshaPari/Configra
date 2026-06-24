@@ -68,9 +68,16 @@ impl EnvGuard {
 /// use a single global env var namespace, so two tests that
 /// use the same prefix will race. Per-test unique prefixes
 /// make the tests trivially parallel-safe.
+// All four are declared up front even when not every test consumes
+// each one — adding a future test in this file should pick from this
+// pool rather than invent a new prefix that might race with neighbours.
+#[allow(dead_code)]
 const PREFIX_CFP: &str = "PHENO_CONFIG_V020_CFP";
+#[allow(dead_code)]
 const PREFIX_CEO: &str = "PHENO_CONFIG_V020_CEO";
+#[allow(dead_code)]
 const PREFIX_CNE: &str = "PHENO_CONFIG_V020_CNE";
+#[allow(dead_code)]
 const PREFIX_CRE: &str = "PHENO_CONFIG_V020_CRE";
 
 /// All env var names any test in this file might set. Listed

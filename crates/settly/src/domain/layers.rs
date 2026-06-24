@@ -100,7 +100,7 @@ impl LayerStack {
     /// Add a layer.
     pub fn add_layer(&mut self, layer: Layer) {
         self.layers.push(layer);
-        self.layers.sort_by(|a, b| a.priority.cmp(&b.priority));
+        self.layers.sort_by_key(|a| a.priority);
     }
 
     /// Add a layer from a config with priority.

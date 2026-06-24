@@ -1,10 +1,10 @@
 [bans]
-workspace-features = "deny"
-multiple-mains = "deny"
-main = "deny"
-unnameable-traits = "deny"
-unnameable-types = "deny"
-unknown-lints = "deny"
+# cargo-deny >= 0.18 rejects any key it doesn't recognize as a hard
+# error, so only documented fields belong here. The previous config
+# listed six clippy-style lint toggles (workspace-features,
+# multiple-mains, main, unnameable-traits, unnameable-types,
+# unknown-lints) that were never documented `[bans]` keys — they
+# were silently ignored by 0.16 and are now hard errors. Removed.
 
 [licenses]
 version = 2
@@ -14,6 +14,7 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "BSD-3-Clause-Clear",
+    "BSL-1.0",
     "CC0-1.0",
     "CC-BY-SA-4.0",
     "GPL-3.0-only",
@@ -50,4 +51,4 @@ ignore = [
     # `darling` -> `darling_core` -> `proc-macro-error`. Upstream `darling`
     # has not migrated; replacing would be a breaking change in sqlx.
     "RUSTSEC-2024-0370",
-]  
+]
