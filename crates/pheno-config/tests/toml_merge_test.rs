@@ -11,9 +11,7 @@
 use std::env;
 use std::sync::Mutex;
 
-use pheno_config::{
-    combine, load_from_env, load_from_toml_file, ConfigBuilder, ConfigError,
-};
+use pheno_config::{combine, load_from_env, load_from_toml_file, ConfigBuilder, ConfigError};
 
 // Process-wide lock that serializes env-var access. The default
 // cargo test harness runs tests in parallel worker threads, but
@@ -70,10 +68,6 @@ impl EnvGuard {
 /// use a single global env var namespace, so two tests that
 /// use the same prefix will race. Per-test unique prefixes
 /// make the tests trivially parallel-safe.
-const PREFIX_TFV: &str = "PHENO_CONFIG_V020_TFV";
-const PREFIX_TFM: &str = "PHENO_CONFIG_V020_TFM";
-const PREFIX_TFMA: &str = "PHENO_CONFIG_V020_TFMA";
-const PREFIX_TFMR: &str = "PHENO_CONFIG_V020_TFMR";
 const PREFIX_CFP: &str = "PHENO_CONFIG_V020_CFP";
 const PREFIX_CEO: &str = "PHENO_CONFIG_V020_CEO";
 const PREFIX_CNE: &str = "PHENO_CONFIG_V020_CNE";
@@ -84,18 +78,28 @@ const PREFIX_CRE: &str = "PHENO_CONFIG_V020_CRE";
 /// as a defense-in-depth (covers any test that uses a non-prefix
 /// var like combine()'s file-parse-error case).
 const KNOWN_V020_VARS: &[&str] = &[
-    "PHENO_CONFIG_V020_TFV_URL", "PHENO_CONFIG_V020_TFV_PORT",
-    "PHENO_CONFIG_V020_TFM_URL", "PHENO_CONFIG_V020_TFM_PORT",
-    "PHENO_CONFIG_V020_TFMA_URL", "PHENO_CONFIG_V020_TFMA_PORT",
-    "PHENO_CONFIG_V020_TFMR_URL", "PHENO_CONFIG_V020_TFMR_PORT",
-    "PHENO_CONFIG_V020_CFP_URL", "PHENO_CONFIG_V020_CFP_PORT",
-    "PHENO_CONFIG_V020_CEO_URL", "PHENO_CONFIG_V020_CEO_PORT",
-    "PHENO_CONFIG_V020_CEO_LOG_LEVEL", "PHENO_CONFIG_V020_CEO_DB_PATH",
+    "PHENO_CONFIG_V020_TFV_URL",
+    "PHENO_CONFIG_V020_TFV_PORT",
+    "PHENO_CONFIG_V020_TFM_URL",
+    "PHENO_CONFIG_V020_TFM_PORT",
+    "PHENO_CONFIG_V020_TFMA_URL",
+    "PHENO_CONFIG_V020_TFMA_PORT",
+    "PHENO_CONFIG_V020_TFMR_URL",
+    "PHENO_CONFIG_V020_TFMR_PORT",
+    "PHENO_CONFIG_V020_CFP_URL",
+    "PHENO_CONFIG_V020_CFP_PORT",
+    "PHENO_CONFIG_V020_CEO_URL",
+    "PHENO_CONFIG_V020_CEO_PORT",
+    "PHENO_CONFIG_V020_CEO_LOG_LEVEL",
+    "PHENO_CONFIG_V020_CEO_DB_PATH",
     "PHENO_CONFIG_V020_CEO_FEATURE_FLAGS",
-    "PHENO_CONFIG_V020_CNE_URL", "PHENO_CONFIG_V020_CNE_PORT",
-    "PHENO_CONFIG_V020_CNE_LOG_LEVEL", "PHENO_CONFIG_V020_CNE_DB_PATH",
+    "PHENO_CONFIG_V020_CNE_URL",
+    "PHENO_CONFIG_V020_CNE_PORT",
+    "PHENO_CONFIG_V020_CNE_LOG_LEVEL",
+    "PHENO_CONFIG_V020_CNE_DB_PATH",
     "PHENO_CONFIG_V020_CNE_FEATURE_FLAGS",
-    "PHENO_CONFIG_V020_CRE_URL", "PHENO_CONFIG_V020_CRE_PORT",
+    "PHENO_CONFIG_V020_CRE_URL",
+    "PHENO_CONFIG_V020_CRE_PORT",
     "PHENO_CONFIG_V020_CRE_DB_PATH",
 ];
 
@@ -300,7 +304,11 @@ feature_flags = ["from_file"]
     // ["from_env", "shared"] are appended (deduped).
     assert_eq!(
         cfg.feature_flags,
-        vec!["from_file".to_owned(), "from_env".to_owned(), "shared".to_owned()]
+        vec![
+            "from_file".to_owned(),
+            "from_env".to_owned(),
+            "shared".to_owned()
+        ]
     );
     let _ = std::fs::remove_file(&path);
 }
