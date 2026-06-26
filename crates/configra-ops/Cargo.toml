@@ -1,0 +1,34 @@
+[package]
+name = "configra-ops"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Observability and operations primitives for Configra services"
+repository = "https://github.com/KooshaPari/Configra"
+keywords = ["observability", "health", "metrics", "tracing", "configra"]
+categories = ["development-tools", "config"]
+
+[lib]
+name = "configra_ops"
+path = "src/lib.rs"
+
+[[bin]]
+name = "configra-ops"
+path = "src/bin/configra-ops.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["signal", "time", "macros", "rt-multi-thread"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
