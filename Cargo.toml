@@ -5,6 +5,7 @@ members = [
     "crates/pheno-config",
     "crates/config-schema",
     "crates/phenotype-config-loader",
+    "crates/configra-ops",
 ]
 
 [workspace.package]
@@ -36,3 +37,5 @@ chrono = "0.4"
 tempfile = "3"
 criterion = "0.5"
 tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+clap = { version = "4", features = ["derive", "env"] }
