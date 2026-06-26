@@ -1,0 +1,80 @@
+Warning: can't set `indent_style = Block`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `indent_style = Block`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Diff in /mnt/c/Users/koosh/Dev/Configra/crates/settly/src/crypto.rs:128:
+     let plaintext =
+         serde_json::to_vec(payload).map_err(|e| ConfigCryptoError::Encrypt(e.to_string()))?;
+     let ciphertext = cipher
+[31m-        .encrypt(
+(B[m[31m-            nonce,
+(B[m[31m-            Payload { msg: &plaintext, aad },
+(B[m[31m-        )
+(B[m[32m+        .encrypt(nonce, Payload { msg: &plaintext, aad })
+(B[m         .map_err(|e| ConfigCryptoError::Encrypt(e.to_string()))?;
+     Ok(EncryptedEnvelope { salt, nonce: nonce_bytes, ciphertext, aad: aad.to_vec() })
+ }
+Diff in /mnt/c/Users/koosh/Dev/Configra/crates/settly/src/crypto.rs:146:
+     let cipher = Aes256Gcm::new(key);
+     let nonce = Nonce::from_slice(&env.nonce);
+     let plaintext = cipher
+[31m-        .decrypt(
+(B[m[31m-            nonce,
+(B[m[31m-            Payload { msg: &env.ciphertext, aad: &env.aad },
+(B[m[31m-        )
+(B[m[32m+        .decrypt(nonce, Payload { msg: &env.ciphertext, aad: &env.aad })
+(B[m         .map_err(|e| ConfigCryptoError::Decrypt(e.to_string()))?;
+     serde_json::from_slice(&plaintext).map_err(|e| ConfigCryptoError::Decrypt(e.to_string()))
+ }
+Diff in /mnt/c/Users/koosh/Dev/Configra/crates/settly/src/crypto.rs:264:
+                 let Some(_ev) = raw_rx.recv().await else { break };
+                 let mut latest: Option<notify::Event> = None;
+                 loop {
+[31m-                    match tokio::time::timeout(std::time::Duration::from_millis(250), raw_rx.recv()).await {
+(B[m[32m+                    match tokio::time::timeout(std::time::Duration::from_millis(250), raw_rx.recv())
+(B[m[32m+                        .await
+(B[m[32m+                    {
+(B[m                         Ok(Some(ev)) => latest = Some(ev),
+                         Ok(None) => return,
+                         Err(_) => break,
+Diff in /mnt/c/Users/koosh/Dev/Configra/crates/settly/src/crypto.rs:288:
+         });
+ 
+         Ok((
+[31m-            Self {
+(B[m[31m-                path,
+(B[m[31m-                passphrase: passphrase.to_vec(),
+(B[m[31m-                tx,
+(B[m[31m-                _watcher: watcher,
+(B[m[31m-                current,
+(B[m[31m-            },
+(B[m[32m+            Self { path, passphrase: passphrase.to_vec(), tx, _watcher: watcher, current },
+(B[m             initial,
+         ))
+     }
+Diff in /mnt/c/Users/koosh/Dev/Configra/crates/settly/src/crypto.rs:312:
+         let new_cfg: T = decrypt_from_file(&self.path, &self.passphrase)?;
+         let new_arc = Arc::new(new_cfg);
+         *self.current.write() = new_arc.clone();
+[31m-        let _ = self.tx.send(ReloadEvent {
+(B[m[31m-            config: new_arc,
+(B[m[31m-            reloaded_at: chrono::Utc::now(),
+(B[m[31m-        });
+(B[m[32m+        let _ = self.tx.send(ReloadEvent { config: new_arc, reloaded_at: chrono::Utc::now() });
+(B[m         Ok(())
+     }
+ 
+Diff in /mnt/c/Users/koosh/Dev/Configra/crates/settly/src/crypto.rs:417:
+         // Cross-AAD: decrypting env_a with aad-B should fail. We test by
+         // trying to decrypt with a constructed envelope using env_a.ciphertext
+         // but env_b.aad — which AES-GCM rejects.
+[31m-        let cross = EncryptedEnvelope { salt: env_a.salt, nonce: env_a.nonce, ciphertext: env_a.ciphertext, aad: env_b.aad.clone() };
+(B[m[32m+        let cross = EncryptedEnvelope {
+(B[m[32m+            salt: env_a.salt,
+(B[m[32m+            nonce: env_a.nonce,
+(B[m[32m+            ciphertext: env_a.ciphertext,
+(B[m[32m+            aad: env_b.aad.clone(),
+(B[m[32m+        };
+(B[m         let result: Result<SampleCfg, _> = decrypt(b"pw", &cross);
+         assert!(result.is_err());
+     }

@@ -1,10 +1,11 @@
 //! Configuration builder.
 
+use std::collections::HashMap;
+
 use crate::domain::{
     sources::Source, validation::Validator, Config, ConfigError, ConfigValue, LayerPriority,
     LayerStack, MergeStrategy,
 };
-use std::collections::HashMap;
 
 /// Builder for constructing configurations.
 pub struct ConfigBuilder {
