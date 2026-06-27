@@ -1,0 +1,165 @@
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/bin/configra-ops.rs:4:
+ 
+ use clap::{Parser, Subcommand};
+ use configra_ops::{
+[31m-    HealthCheck, LoggingConfig, WorkspaceCheck, init_logging, liveness, readiness, VERSION,
+(B[m[32m+    init_logging, liveness, readiness, HealthCheck, LoggingConfig, WorkspaceCheck, VERSION,
+(B[m };
+ 
+ #[derive(Debug, Parser)]
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/bin/configra-ops.rs:43:
+                 liveness(VERSION)
+             };
+ 
+[31m-            let emit_json = json || std::env::var("CONFIGRA_LOG_FORMAT").map(|v| v == "json").unwrap_or(false);
+(B[m[32m+            let emit_json = json
+(B[m[32m+                || std::env::var("CONFIGRA_LOG_FORMAT")
+(B[m[32m+                    .map(|v| v == "json")
+(B[m[32m+                    .unwrap_or(false);
+(B[m             if emit_json {
+                 println!("{}", report.to_json().expect("serialize health report"));
+             } else if report.status == configra_ops::HealthStatus::Healthy {
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/bin/configra-ops.rs:52:
+                 eprintln!("unhealthy");
+                 for check in &report.checks {
+                     if check.status != configra_ops::HealthStatus::Healthy {
+[31m-                        eprintln!("  {}: {}", check.name, check.message.as_deref().unwrap_or("failed"));
+(B[m[32m+                        eprintln!(
+(B[m[32m+                            "  {}: {}",
+(B[m[32m+                            check.name,
+(B[m[32m+                            check.message.as_deref().unwrap_or("failed")
+(B[m[32m+                        );
+(B[m                     }
+                 }
+             }
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/correlation.rs:22:
+         if trimmed.is_empty() {
+             return None;
+         }
+[31m-        Uuid::parse_str(trimmed).ok().map(|u| Self(u.to_string().into()))
+(B[m[32m+        Uuid::parse_str(trimmed)
+(B[m[32m+            .ok()
+(B[m[32m+            .map(|u| Self(u.to_string().into()))
+(B[m             .or_else(|| Some(Self(trimmed.to_owned().into())))
+     }
+ 
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/health.rs:5:
+ use chrono::Utc;
+ use serde::Serialize;
+ 
+[31m-use crate::metrics::{self, MetricsHook, NoopMetricsHook, names};
+(B[m[32m+use crate::metrics::{self, names, MetricsHook, NoopMetricsHook};
+(B[m 
+ /// Aggregate health status.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/lib.rs:11:
+ pub mod shutdown;
+ 
+ pub use correlation::{CorrelationId, CorrelationLayer};
+[31m-pub use health::{CheckResult, HealthCheck, HealthReport, HealthStatus, liveness, readiness};
+(B[m[31m-pub use logging::{LogFormat, LoggingConfig, init_logging};
+(B[m[32m+pub use health::{liveness, readiness, CheckResult, HealthCheck, HealthReport, HealthStatus};
+(B[m[32m+pub use logging::{init_logging, LogFormat, LoggingConfig};
+(B[m pub use metrics::{MetricsHook, MetricsRegistry, NoopMetricsHook};
+[31m-pub use shutdown::{GracefulShutdown, ShutdownConfig, shutdown_signal};
+(B[m[32m+pub use shutdown::{shutdown_signal, GracefulShutdown, ShutdownConfig};
+(B[m 
+ /// Crate version (matches workspace package version).
+ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/logging.rs:2:
+ 
+ use std::io;
+ 
+[31m-use tracing_subscriber::EnvFilter;
+(B[m use tracing_subscriber::fmt::format::FmtSpan;
+ use tracing_subscriber::layer::SubscriberExt;
+ use tracing_subscriber::util::SubscriberInitExt;
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/logging.rs:9:
+[32m+use tracing_subscriber::EnvFilter;
+(B[m 
+ /// Log output format.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/logging.rs:59:
+ /// Returns the resolved level filter on success.
+ pub fn init_logging(config: &LoggingConfig) -> anyhow::Result<tracing::Level> {
+     let filter = EnvFilter::try_new(&config.level)?;
+[31m-    let level = filter
+(B[m[31m-        .max_level_hint()
+(B[m[31m-        .unwrap_or(tracing::Level::INFO);
+(B[m[32m+    let level = filter.max_level_hint().unwrap_or(tracing::Level::INFO);
+(B[m 
+     let span_events = if config.log_spans {
+         FmtSpan::CLOSE
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/metrics.rs:46:
+ 
+     /// Snapshot current counter values.
+     pub fn counters(&self) -> HashMap<String, u64> {
+[31m-        self.inner.read().expect("metrics lock poisoned").counters.clone()
+(B[m[32m+        self.inner
+(B[m[32m+            .read()
+(B[m[32m+            .expect("metrics lock poisoned")
+(B[m[32m+            .counters
+(B[m[32m+            .clone()
+(B[m     }
+ 
+     /// Snapshot current gauge values.
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/metrics.rs:53:
+     pub fn gauges(&self) -> HashMap<String, f64> {
+[31m-        self.inner.read().expect("metrics lock poisoned").gauges.clone()
+(B[m[32m+        self.inner
+(B[m[32m+            .read()
+(B[m[32m+            .expect("metrics lock poisoned")
+(B[m[32m+            .gauges
+(B[m[32m+            .clone()
+(B[m     }
+ }
+ 
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/metrics.rs:76:
+ /// Returns whether metrics collection is enabled (`CONFIGRA_METRICS_ENABLED`).
+ pub fn metrics_enabled() -> bool {
+     match std::env::var("CONFIGRA_METRICS_ENABLED") {
+[31m-        Ok(v) => !matches!(v.to_ascii_lowercase().as_str(), "0" | "false" | "off" | "no"),
+(B[m[32m+        Ok(v) => !matches!(
+(B[m[32m+            v.to_ascii_lowercase().as_str(),
+(B[m[32m+            "0" | "false" | "off" | "no"
+(B[m[32m+        ),
+(B[m         Err(_) => true,
+     }
+ }
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/shutdown.rs:6:
+ use tokio::time;
+ use tracing::{info, warn};
+ 
+[31m-use crate::metrics::{self, MetricsHook, NoopMetricsHook, names};
+(B[m[32m+use crate::metrics::{self, names, MetricsHook, NoopMetricsHook};
+(B[m 
+ /// Shutdown behaviour configuration.
+ #[derive(Debug, Clone)]
+Diff in /mnt/c/Users/koosh/Configra/crates/configra-ops/src/shutdown.rs:66:
+ 
+     /// Create with explicit drain timeout.
+     pub fn with_config(config: ShutdownConfig) -> Self {
+[31m-        Self { config, metrics: Box::new(NoopMetricsHook) }
+(B[m[32m+        Self {
+(B[m[32m+            config,
+(B[m[32m+            metrics: Box::new(NoopMetricsHook),
+(B[m[32m+        }
+(B[m     }
+ 
+     /// Attach a metrics hook for shutdown events.
+Warning: can't set `indent_style = Block`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `indent_style = Block`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Diff in /mnt/c/Users/koosh/Configra/crates/settly/src/infrastructure/observability.rs:1:
+ //! Observability re-exports from `configra-ops` for settly integrators.
+ 
+ pub use configra_ops::{
+[31m-    CorrelationId, CorrelationLayer, GracefulShutdown, HealthCheck, HealthReport, HealthStatus,
+(B[m[31m-    LoggingConfig, LogFormat, MetricsHook, MetricsRegistry, NoopMetricsHook, ShutdownConfig,
+(B[m[31m-    init_logging, liveness, readiness, shutdown_signal,
+(B[m[32m+    init_logging, liveness, readiness, shutdown_signal, CorrelationId, CorrelationLayer,
+(B[m[32m+    GracefulShutdown, HealthCheck, HealthReport, HealthStatus, LogFormat, LoggingConfig,
+(B[m[32m+    MetricsHook, MetricsRegistry, NoopMetricsHook, ShutdownConfig,
+(B[m };
+ 
