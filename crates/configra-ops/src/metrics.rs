@@ -46,12 +46,20 @@ impl MetricsRegistry {
 
     /// Snapshot current counter values.
     pub fn counters(&self) -> HashMap<String, u64> {
-        self.inner.read().expect("metrics lock poisoned").counters.clone()
+        self.inner
+            .read()
+            .expect("metrics lock poisoned")
+            .counters
+            .clone()
     }
 
     /// Snapshot current gauge values.
     pub fn gauges(&self) -> HashMap<String, f64> {
-        self.inner.read().expect("metrics lock poisoned").gauges.clone()
+        self.inner
+            .read()
+            .expect("metrics lock poisoned")
+            .gauges
+            .clone()
     }
 }
 
@@ -76,7 +84,10 @@ impl MetricsHook for MetricsRegistry {
 /// Returns whether metrics collection is enabled (`CONFIGRA_METRICS_ENABLED`).
 pub fn metrics_enabled() -> bool {
     match std::env::var("CONFIGRA_METRICS_ENABLED") {
-        Ok(v) => !matches!(v.to_ascii_lowercase().as_str(), "0" | "false" | "off" | "no"),
+        Ok(v) => !matches!(
+            v.to_ascii_lowercase().as_str(),
+            "0" | "false" | "off" | "no"
+        ),
         Err(_) => true,
     }
 }

@@ -1,7 +1,8 @@
 //! Format adapters for parsing configuration files.
 
-use crate::domain::{errors::ConfigError, Config, ConfigValue};
 use std::collections::HashMap;
+
+use crate::domain::{errors::ConfigError, Config, ConfigValue};
 
 /// TOML format parser.
 pub struct TomlFormat;

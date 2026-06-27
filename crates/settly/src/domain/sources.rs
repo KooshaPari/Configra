@@ -1,8 +1,9 @@
 //! Configuration source definitions.
 
+use async_trait::async_trait;
+
 use super::config::Config;
 use super::errors::ConfigError;
-use async_trait::async_trait;
 
 /// Trait for configuration sources.
 #[async_trait]

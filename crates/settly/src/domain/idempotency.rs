@@ -2,9 +2,10 @@
 //!
 //! Provides a swappable key→result store and DLQ hook for submission deduplication.
 
+use std::time::{Duration, Instant};
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
 
 use super::errors::ConfigError;
 

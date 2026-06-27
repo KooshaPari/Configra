@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use chrono::Utc;
 use serde::Serialize;
 
-use crate::metrics::{self, MetricsHook, NoopMetricsHook, names};
+use crate::metrics::{self, names, MetricsHook, NoopMetricsHook};
 
 /// Aggregate health status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -28,7 +28,7 @@ pub struct CheckResult {
 }
 
 impl CheckResult {
-    fn ok(name: impl Into<String>, started: Instant) -> Self {
+    pub fn ok(name: impl Into<String>, started: Instant) -> Self {
         Self {
             name: name.into(),
             status: HealthStatus::Healthy,
@@ -37,7 +37,7 @@ impl CheckResult {
         }
     }
 
-    fn fail(name: impl Into<String>, message: impl Into<String>, started: Instant) -> Self {
+    pub fn fail(name: impl Into<String>, message: impl Into<String>, started: Instant) -> Self {
         Self {
             name: name.into(),
             status: HealthStatus::Unhealthy,

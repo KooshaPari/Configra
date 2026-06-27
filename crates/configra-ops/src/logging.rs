@@ -2,10 +2,11 @@
 
 use std::io;
 
-use tracing_subscriber::EnvFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 /// Log output format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -59,9 +60,7 @@ impl Default for LoggingConfig {
 /// Returns the resolved level filter on success.
 pub fn init_logging(config: &LoggingConfig) -> anyhow::Result<tracing::Level> {
     let filter = EnvFilter::try_new(&config.level)?;
-    let level = filter
-        .max_level_hint()
-        .unwrap_or(tracing::Level::INFO);
+    let level = filter.max_level_hint().unwrap_or(LevelFilter::INFO);
 
     let span_events = if config.log_spans {
         FmtSpan::CLOSE

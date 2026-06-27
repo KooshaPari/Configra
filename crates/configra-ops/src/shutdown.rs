@@ -6,7 +6,7 @@ use tokio::signal;
 use tokio::time;
 use tracing::{info, warn};
 
-use crate::metrics::{self, MetricsHook, NoopMetricsHook, names};
+use crate::metrics::{self, names, MetricsHook, NoopMetricsHook};
 
 /// Shutdown behaviour configuration.
 #[derive(Debug, Clone)]
@@ -66,7 +66,10 @@ impl GracefulShutdown {
 
     /// Create with explicit drain timeout.
     pub fn with_config(config: ShutdownConfig) -> Self {
-        Self { config, metrics: Box::new(NoopMetricsHook) }
+        Self {
+            config,
+            metrics: Box::new(NoopMetricsHook),
+        }
     }
 
     /// Attach a metrics hook for shutdown events.

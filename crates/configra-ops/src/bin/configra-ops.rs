@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use configra_ops::{
-    HealthCheck, LoggingConfig, WorkspaceCheck, init_logging, liveness, readiness, VERSION,
+    init_logging, liveness, readiness, HealthCheck, LoggingConfig, WorkspaceCheck, VERSION,
 };
 
 #[derive(Debug, Parser)]
@@ -43,7 +43,10 @@ fn main() -> ExitCode {
                 liveness(VERSION)
             };
 
-            let emit_json = json || std::env::var("CONFIGRA_LOG_FORMAT").map(|v| v == "json").unwrap_or(false);
+            let emit_json = json
+                || std::env::var("CONFIGRA_LOG_FORMAT")
+                    .map(|v| v == "json")
+                    .unwrap_or(false);
             if emit_json {
                 println!("{}", report.to_json().expect("serialize health report"));
             } else if report.status == configra_ops::HealthStatus::Healthy {
@@ -52,7 +55,11 @@ fn main() -> ExitCode {
                 eprintln!("unhealthy");
                 for check in &report.checks {
                     if check.status != configra_ops::HealthStatus::Healthy {
-                        eprintln!("  {}: {}", check.name, check.message.as_deref().unwrap_or("failed"));
+                        eprintln!(
+                            "  {}: {}",
+                            check.name,
+                            check.message.as_deref().unwrap_or("failed")
+                        );
                     }
                 }
             }

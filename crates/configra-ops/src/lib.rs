@@ -11,10 +11,10 @@ pub mod metrics;
 pub mod shutdown;
 
 pub use correlation::{CorrelationId, CorrelationLayer};
-pub use health::{CheckResult, HealthCheck, HealthReport, HealthStatus, liveness, readiness};
-pub use logging::{LogFormat, LoggingConfig, init_logging};
+pub use health::{liveness, readiness, CheckResult, HealthCheck, HealthReport, HealthStatus};
+pub use logging::{init_logging, LogFormat, LoggingConfig};
 pub use metrics::{MetricsHook, MetricsRegistry, NoopMetricsHook};
-pub use shutdown::{GracefulShutdown, ShutdownConfig, shutdown_signal};
+pub use shutdown::{shutdown_signal, GracefulShutdown, ShutdownConfig};
 
 /// Crate version (matches workspace package version).
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

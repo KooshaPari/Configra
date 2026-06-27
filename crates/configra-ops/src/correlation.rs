@@ -10,6 +10,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CorrelationId(Arc<str>);
 
+impl std::fmt::Display for CorrelationId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl CorrelationId {
     /// Generate a new random correlation ID.
     pub fn new() -> Self {
@@ -22,7 +28,9 @@ impl CorrelationId {
         if trimmed.is_empty() {
             return None;
         }
-        Uuid::parse_str(trimmed).ok().map(|u| Self(u.to_string().into()))
+        Uuid::parse_str(trimmed)
+            .ok()
+            .map(|u| Self(u.to_string().into()))
             .or_else(|| Some(Self(trimmed.to_owned().into())))
     }
 
@@ -52,12 +60,12 @@ impl CorrelationId {
 
     /// Attach this ID to the current tracing span.
     pub fn attach_to_span(&self) {
-        Span::current().record("correlation_id", tracing::field::display(self));
+        Span::current().record("correlation_id", tracing::field::display(self.0.as_ref()));
     }
 
     /// Create a child span tagged with this correlation ID.
     pub fn span(&self, name: &'static str) -> tracing::Span {
-        tracing::info_span!(name, correlation_id = %self.0)
+        tracing::info_span!(name, correlation_id = %self)
     }
 }
 
