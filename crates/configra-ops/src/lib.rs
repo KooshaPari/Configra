@@ -11,7 +11,7 @@ pub mod metrics;
 pub mod shutdown;
 
 pub use correlation::{CorrelationId, CorrelationLayer};
-pub use health::{liveness, readiness, CheckResult, HealthCheck, HealthReport, HealthStatus};
+pub use health::{liveness, readiness, CheckResult, HealthCheck, HealthReport, HealthStatus, WorkspaceCheck};
 pub use logging::{init_logging, LogFormat, LoggingConfig};
 pub use metrics::{MetricsHook, MetricsRegistry, NoopMetricsHook};
 pub use shutdown::{shutdown_signal, GracefulShutdown, ShutdownConfig};
