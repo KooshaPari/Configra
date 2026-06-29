@@ -61,8 +61,12 @@
 use std::env;
 use std::path::Path;
 
+use secrecy::{ExposeSecret, SecretBox};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+pub mod secret;
+pub use crate::secret::{new_secret, SecretString};
 
 // ---------------------------------------------------------------------------
 // Error type
@@ -129,7 +133,14 @@ pub type Result<T> = std::result::Result<T, ConfigError>;
 /// - [`Config::db_path`] — on-disk database path (required).
 /// - [`Config::feature_flags`] — list of opt-in feature toggles.
 ///   Defaults to empty.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// - [`Config::secret_value`] — optional redacting wrapper around a
+///   plaintext credential (API token, OAuth secret, ...). The field
+///   is marked `#[serde(skip)]` so secret values are never written
+///   to config snapshots or persisted config files; load it via
+///   `<PREFIX>_SECRET_TOKEN` env vars or the builder, then read it
+///   through [`Config::secret_value`] (and `SecretBox::expose_secret`
+///   at the trust boundary).
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// Service base URL (required).
     pub url: String,
@@ -142,7 +153,55 @@ pub struct Config {
     /// List of opt-in feature toggles. Defaults to `Vec::new()`.
     #[serde(default)]
     pub feature_flags: Vec<String>,
+    /// Optional plaintext credential (API token, OAuth secret,
+    /// webhook signing key, ...). `Debug` redacts to `[REDACTED]`;
+    /// `Drop` zeroises the heap allocation; `Serialize`/`Deserialize`
+    /// skip the field entirely (`#[serde(default, skip)]`) so secrets
+    /// never leak through config snapshots or persisted JSON.
+    #[serde(default, skip)]
+    pub secret_value: Option<SecretBox<str>>,
 }
+
+// Hand-rolled `Clone`: `SecretBox<str>` does not (and should not)
+// implement `Clone` because cloning a secret expands its blast radius
+// across more allocations and lifetime boundaries. The implementation
+// below re-wraps the exposed plaintext in a fresh `SecretBox` so
+// `Config::clone()` still produces a fully usable copy, but every
+// call site is forced to consciously accept the multiplication of the
+// secret's footprint.
+impl Clone for Config {
+    fn clone(&self) -> Self {
+        Self {
+            url: self.url.clone(),
+            port: self.port,
+            log_level: self.log_level.clone(),
+            db_path: self.db_path.clone(),
+            feature_flags: self.feature_flags.clone(),
+            secret_value: self
+                .secret_value
+                .as_ref()
+                .map(|s| SecretBox::new(String::from(s.expose_secret()).into_boxed_str())),
+        }
+    }
+}
+
+// Two `Config`s that share every non-secret field are considered
+// equal. The secret value is intentionally NOT compared: equality of
+// redacted values would either leak timing-channel info (memcmp) or
+// silently drop the secret comparison (always false). Hand-rolled
+// `PartialEq`/`Eq` here replaces the auto-derive we removed when
+// adding `secret_value` (which doesn't itself implement `PartialEq`).
+impl PartialEq for Config {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url
+            && self.port == other.port
+            && self.log_level == other.log_level
+            && self.db_path == other.db_path
+            && self.feature_flags == other.feature_flags
+    }
+}
+
+impl Eq for Config {}
 
 // ---------------------------------------------------------------------------
 // Env-var name constants
@@ -159,6 +218,14 @@ pub const FIELD_LOG_LEVEL: &str = "LOG_LEVEL";
 pub const FIELD_DB_PATH: &str = "DB_PATH";
 /// Field name for [`Config::feature_flags`].
 pub const FIELD_FEATURE_FLAGS: &str = "FEATURE_FLAGS";
+/// Field name for [`Config::secret_value`] (env-var suffix).
+///
+/// The env-var convention is `<PREFIX>_SECRET_TOKEN` so operators
+/// can inject a single plaintext credential without committing a
+/// secret to a config file. The field is `#[serde(skip)]` on the
+/// struct, so this is the **only** way to populate `secret_value`
+/// from a non-builder source.
+pub const FIELD_SECRET_TOKEN: &str = "SECRET_TOKEN";
 
 fn env_name(prefix: &str, field: &str) -> String {
     format!("{prefix}_{field}")
@@ -270,12 +337,27 @@ pub fn load_from_env(prefix: &str) -> Result<Config> {
         }
     };
 
+    // Optional: SECRET_TOKEN (wrapped in a redacting `SecretBox` so
+    // `Debug`/serialised output never leaks the plaintext).
+    let secret_value = match env::var(env_name(prefix, FIELD_SECRET_TOKEN)) {
+        Ok(raw) if !raw.is_empty() => Some(SecretBox::new(raw.into_boxed_str())),
+        Ok(_) => None,
+        Err(env::VarError::NotPresent) => None,
+        Err(env::VarError::NotUnicode(_)) => {
+            return Err(ConfigError::ParseError {
+                field: env_name(prefix, FIELD_SECRET_TOKEN),
+                message: "env value is not valid unicode".to_owned(),
+            });
+        }
+    };
+
     Ok(Config {
         url,
         port,
         log_level,
         db_path,
         feature_flags,
+        secret_value,
     })
 }
 
@@ -438,6 +520,13 @@ impl Config {
                 self.feature_flags.push(flag.clone());
             }
         }
+        // Secret overlay: take the env/file side if it carries one.
+        // The receiving side (`self`) keeps its original value when
+        // the overlay is `None`, mirroring the "fill in gaps, env
+        // wins" semantics of the other fields.
+        if other.secret_value.is_some() {
+            self.secret_value = other.secret_value.clone();
+        }
     }
 }
 
@@ -502,18 +591,44 @@ fn load_from_env_full(prefix: &str) -> Result<Config> {
             });
         }
     };
+    let secret_value = match env::var(env_name(prefix, FIELD_SECRET_TOKEN)) {
+        Ok(raw) if !raw.is_empty() => Some(SecretBox::new(raw.into_boxed_str())),
+        Ok(_) => None,
+        Err(env::VarError::NotPresent) => None,
+        Err(env::VarError::NotUnicode(_)) => {
+            return Err(ConfigError::ParseError {
+                field: env_name(prefix, FIELD_SECRET_TOKEN),
+                message: "env value is not valid unicode".to_owned(),
+            });
+        }
+    };
     Ok(Config {
         url,
         port,
         log_level,
         db_path,
         feature_flags,
+        secret_value,
     })
 }
 
 // ---------------------------------------------------------------------------
 // ConfigBuilder
 // ---------------------------------------------------------------------------
+
+impl Config {
+    /// Returns the redacted secret value, if one is configured.
+    ///
+    /// The returned [`SecretBox`] zeroizes its memory on drop and refuses
+    /// to format itself through `Display`/`Debug`. Use
+    /// [`SecretBox::expose_secret`] at the trust boundary (e.g. when
+    /// handing the value to a TLS or HTTP client) — never log the
+    /// result.
+    #[must_use]
+    pub fn secret_value(&self) -> Option<&SecretBox<str>> {
+        self.secret_value.as_ref()
+    }
+}
 
 /// Programmatic [`Config`] construction with sensible defaults.
 ///
@@ -546,6 +661,7 @@ pub struct ConfigBuilder {
     log_level: String,
     db_path: Option<String>,
     feature_flags: Vec<String>,
+    secret_value: Option<SecretBox<str>>,
 }
 
 impl Default for ConfigBuilder {
@@ -566,6 +682,7 @@ impl ConfigBuilder {
             log_level: String::from("info"),
             db_path: None,
             feature_flags: Vec::new(),
+            secret_value: None,
         }
     }
 
@@ -612,6 +729,19 @@ impl ConfigBuilder {
         self
     }
 
+    /// Wraps `value` in a redacting [`SecretBox`] and stores it.
+    ///
+    /// The secret is zeroized on drop and refused by `Debug`/`Display`
+    /// formatters, so it cannot leak through accidental logging.
+    /// Callers that actually need the plaintext should call
+    /// [`Config::secret_value`] followed by
+    /// [`SecretBox::expose_secret`] at the trust boundary.
+    #[must_use]
+    pub fn secret_value(mut self, value: impl Into<String>) -> Self {
+        self.secret_value = Some(SecretBox::new(value.into().into_boxed_str()));
+        self
+    }
+
     /// Materialises a [`Config`].
     ///
     /// # Errors
@@ -631,6 +761,7 @@ impl ConfigBuilder {
             log_level: self.log_level,
             db_path,
             feature_flags: self.feature_flags,
+            secret_value: self.secret_value,
         })
     }
 }

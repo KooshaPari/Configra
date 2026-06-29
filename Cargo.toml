@@ -39,3 +39,9 @@ criterion = "0.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
 clap = { version = "4", features = ["derive", "env"] }
+# `secrecy` provides a `SecretBox<str>` heap-allocated redacting wrapper
+# used by `pheno_config::secret::SecretString` for sensitive config values
+# (API keys, OAuth tokens, DB passwords smuggled in connection strings, ...).
+# We pin to v0.10 because that's the first release whose `Debug` impl redacts
+# by default (older versions leaked the inner value through `Debug`).
+secrecy = { version = "0.10", features = ["serde"] }
