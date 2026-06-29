@@ -2,8 +2,8 @@
 
 use std::io;
 
-use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
@@ -60,7 +60,18 @@ impl Default for LoggingConfig {
 /// Returns the resolved level filter on success.
 pub fn init_logging(config: &LoggingConfig) -> anyhow::Result<tracing::Level> {
     let filter = EnvFilter::try_new(&config.level)?;
-    let level = filter.max_level_hint().unwrap_or(LevelFilter::INFO);
+    // `EnvFilter::max_level_hint()` returns a `LevelFilter`, not a
+    // `tracing::Level`. Project both into the typed `Level` enum so
+    // callers get a real level they can match on.
+    let level = match filter.max_level_hint() {
+        Some(LevelFilter::OFF) => tracing::Level::INFO,
+        Some(LevelFilter::ERROR) => tracing::Level::ERROR,
+        Some(LevelFilter::WARN) => tracing::Level::WARN,
+        Some(LevelFilter::INFO) => tracing::Level::INFO,
+        Some(LevelFilter::DEBUG) => tracing::Level::DEBUG,
+        Some(LevelFilter::TRACE) => tracing::Level::TRACE,
+        None => tracing::Level::INFO,
+    };
 
     let span_events = if config.log_spans {
         FmtSpan::CLOSE

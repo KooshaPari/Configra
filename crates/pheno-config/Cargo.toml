@@ -32,6 +32,10 @@ toml = { workspace = true }
 # Consumers add `pheno-config = { version = "0.2", features = ["tracing"] }`
 # to opt into the OTLP substrate.
 tracing = { workspace = true, optional = true }
+# `secrecy` powers the redacting `SecretString` wrapper used for sensitive
+# fields like API tokens. v0.10+ defaults to a redacting `Debug` impl so
+# config snapshots never accidentally leak secret values into logs.
+secrecy = { workspace = true }
 
 [features]
 default = []

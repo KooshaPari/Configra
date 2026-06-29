@@ -76,6 +76,10 @@ fn load_env_partial() -> Result<Config, ConfigError> {
                 .filter(|s| !s.is_empty())
                 .map(str::to_owned)
                 .collect(),
+            secret_value: std::env::var("PHENO_CONFIG_SECRET_TOKEN")
+                .ok()
+                .filter(|v| !v.is_empty())
+                .map(|v| secrecy::SecretBox::new(v.into_boxed_str())),
         }),
     }
 }

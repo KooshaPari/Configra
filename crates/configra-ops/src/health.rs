@@ -112,7 +112,11 @@ pub fn readiness_with_metrics(
 
     for check in checks {
         let started = Instant::now();
-        let result = match run_with_timeout(check, timeout) {
+        // `check: &&dyn HealthCheck` — `*check` derefs one layer to
+        // `&dyn HealthCheck`, which `run_with_timeout` accepts. The
+        // double-deref was failing prior because Rust won't auto-coerce
+        // `&&dyn Trait` to `&dyn Trait` through dyn-trait upcasting.
+        let result = match run_with_timeout(*check, timeout) {
             Ok(()) => CheckResult::ok(check.name().to_owned(), started),
             Err(msg) => {
                 overall = HealthStatus::Unhealthy;
