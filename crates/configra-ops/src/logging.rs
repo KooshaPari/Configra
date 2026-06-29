@@ -60,7 +60,14 @@ impl Default for LoggingConfig {
 /// Returns the resolved level filter on success.
 pub fn init_logging(config: &LoggingConfig) -> anyhow::Result<tracing::Level> {
     let filter = EnvFilter::try_new(&config.level)?;
-    let level = filter.max_level_hint().unwrap_or(LevelFilter::INFO);
+    let level = match filter.max_level_hint().unwrap_or(LevelFilter::INFO) {
+        LevelFilter::TRACE => tracing::Level::TRACE,
+        LevelFilter::DEBUG => tracing::Level::DEBUG,
+        LevelFilter::INFO => tracing::Level::INFO,
+        LevelFilter::WARN => tracing::Level::WARN,
+        LevelFilter::ERROR => tracing::Level::ERROR,
+        LevelFilter::OFF => tracing::Level::ERROR, // fallback for OFF
+    };
 
     let span_events = if config.log_spans {
         FmtSpan::CLOSE

@@ -112,7 +112,7 @@ pub fn readiness_with_metrics(
 
     for check in checks {
         let started = Instant::now();
-        let result = match run_with_timeout(check, timeout) {
+        let result = match run_with_timeout(*check, timeout) {
             Ok(()) => CheckResult::ok(check.name().to_owned(), started),
             Err(msg) => {
                 overall = HealthStatus::Unhealthy;

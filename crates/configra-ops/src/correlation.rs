@@ -1,6 +1,5 @@
 //! Correlation ID generation and propagation through tracing spans.
 
-use std::fmt;
 use std::sync::Arc;
 
 use tracing::Span;
@@ -65,19 +64,13 @@ impl CorrelationId {
 
     /// Create a child span tagged with this correlation ID.
     pub fn span(&self, name: &'static str) -> tracing::Span {
-        tracing::info_span!(name, correlation_id = %self)
+        tracing::info_span!("correlation", name = name, correlation_id = %self)
     }
 }
 
 impl Default for CorrelationId {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl fmt::Display for CorrelationId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
     }
 }
 
