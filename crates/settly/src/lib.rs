@@ -19,6 +19,7 @@
 
 pub mod adapters;
 pub mod application;
+pub mod crypto;
 pub mod domain;
 pub mod infrastructure;
 
@@ -26,6 +27,9 @@ pub mod infrastructure;
 pub use adapters::idempotency::{InMemoryDlq, InMemoryIdempotencyStore};
 pub use application::builder::ConfigBuilder;
 pub use application::submission::SubmissionService;
+pub use crypto::{
+    ConfigCryptoError, EncryptedEnvelope, HotReloader, ReloadEvent, NONCE_LEN, SALT_LEN,
+};
 pub use domain::errors::ConfigError;
 pub use domain::{Config, ConfigValue, Layer, LayerPriority};
 pub use domain::{
