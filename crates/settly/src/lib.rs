@@ -28,7 +28,7 @@ pub use adapters::idempotency::{InMemoryDlq, InMemoryIdempotencyStore};
 pub use application::builder::ConfigBuilder;
 pub use application::submission::SubmissionService;
 pub use crypto::{
-    ConfigCrypto, EncryptedConfig, KeyDerivation, KEY_BYTES, NONCE_BYTES, SALT_BYTES, TAG_BYTES,
+    ConfigCryptoError, EncryptedEnvelope, HotReloader, ReloadEvent, NONCE_LEN, SALT_LEN,
 };
 pub use domain::errors::ConfigError;
 pub use domain::{Config, ConfigValue, Layer, LayerPriority};
