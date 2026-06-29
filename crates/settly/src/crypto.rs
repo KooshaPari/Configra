@@ -24,7 +24,6 @@ use aes_gcm::{
     Aes256Gcm, Key, Nonce,
 };
 use argon2::{Algorithm, Argon2, Params, Version};
-use base64ct::{Base64, Encoding};
 use rand::{rngs::OsRng, RngCore};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
