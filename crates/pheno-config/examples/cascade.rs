@@ -76,6 +76,7 @@ fn load_env_partial() -> Result<Config, ConfigError> {
                 .filter(|s| !s.is_empty())
                 .map(str::to_owned)
                 .collect(),
+            secret_value: None,
         }),
     }
 }
