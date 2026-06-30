@@ -37,6 +37,9 @@ argon2 = "0.5"
 base64ct = { version = "1.6", features = ["alloc"] }
 rand = "0.8"
 
+# Lock-free arc swap (Reloadable<T> generic trait)
+arc-swap = "1"
+
 # File watching + hot-reload
 notify = "6.1"
 parking_lot = "0.12"

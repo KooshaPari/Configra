@@ -22,6 +22,7 @@ pub mod application;
 pub mod crypto;
 pub mod domain;
 pub mod infrastructure;
+pub mod reloadable;
 
 // Re-exports
 pub use adapters::idempotency::{InMemoryDlq, InMemoryIdempotencyStore};
@@ -36,6 +37,7 @@ pub use domain::{
     DeadLetterEntry, DeadLetterQueue, IdempotencyKey, IdempotencyStore, SubmissionResult,
 };
 pub use infrastructure::error::ConfigKitError;
+pub use reloadable::{ReloadError, Reloadable};
 
 /// Framework version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

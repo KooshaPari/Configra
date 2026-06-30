@@ -2119,6 +2119,7 @@ version = "0.4.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
+ "arc-swap",
  "argon2",
  "async-trait",
  "base64ct",
