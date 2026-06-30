@@ -35,70 +35,73 @@
 [![Rust](https://img.shields.io/badge/rust-1.83+-orange.svg?logo=rust&logoColor=white)](Cargo.toml)
 [![Status](https://img.shields.io/badge/status-active-brightgreen.svg)](#)
 
-Local-first configuration management, feature flags, secrets, and version tracking for Phenotype projects with auditable change history and CLI-first workflows.
+Rust configuration framework for Phenotype projects — typed config loading,
+settings lifecycle management, JSON schema validation, and encryption-at-rest.
+Five-crate Cargo workspace; pre-1.0, active development.
+
+> **Scope note (v37 integrity pass):** Earlier versions of this README described
+> `pheno-db` (SQLite persistence), `pheno-cli` / `phenoctl` (TUI CLI), `pheno-core`,
+> and `pheno-crypto` as separate crates. **Those crates do not exist in this
+> workspace.** The actual crate split is documented below. AES-256-GCM
+> encryption-at-rest is implemented inside `settly` (`src/crypto.rs`), not in a
+> standalone `pheno-crypto` crate. The `configra-ops` crate ships a minimal
+> health/version CLI binary (`configra-ops`), not a full `phenoctl` command suite.
+> A `phenoctl`-style feature-flag/secrets CLI and SQLite persistence layer are
+> on the roadmap but not yet implemented.
 
 ## Overview
 
-Configra is a comprehensive configuration SDK for Phenotype projects providing consistent management of settings, feature flags, secrets, and version information. It offers local-first persistence with team collaboration support, full audit trails, and point-in-time restore capabilities.
+Configra is a tier-2 library substrate for Phenotype projects. It consolidates
+configuration loading, settings validation, JSON schema primitives, and
+observability/ops utilities from eight absorbed upstream repos into a single
+coherent workspace.
+
+## What Is Actually Here
+
+| Crate | What it does |
+|---|---|
+| `pheno-config` | Typed `Config` struct with env-var + TOML + builder loading, 5-layer 12-factor cascade, `SecretBox<str>` redacting wrapper |
+| `settly` | Settings lifecycle (submission, validation, migration), AES-256-GCM encryption-at-rest via Argon2id KDF, hot-reload via `notify` |
+| `config-schema` | JSON schema field/object validation primitives (`SchemaField`, `ConfigSchema`) |
+| `phenotype-config-loader` | Generic `load_json<T>` / `load_toml<T>` file loaders with bounded error types |
+| `configra-ops` | Observability + ops primitives (health/liveness/readiness checks, metrics, tracing, shutdown) + `configra-ops` health/version CLI |
 
 ## Technology Stack
 
-- **Language**: Rust (primary), with Go/Python bindings available
-- **Frameworks**: Clap (CLI), Ratatui (TUI)
-- **Persistence**: SQLite with auto-migration
-- **Cryptography**: AES-256-GCM for secrets
-- **Key Crates**: pheno-core, pheno-db, pheno-crypto, pheno-cli
+- **Language**: Rust 1.75+ (MSRV), ES Modules TypeScript edge layer (`typescript/packages/conft/`)
+- **Cryptography**: AES-256-GCM + Argon2id KDF (in `settly`, gated behind `encryption` feature flag)
+- **Hot-reload**: `notify` v6 + tokio broadcast channel (in `settly`, gated behind `hot-reload` feature flag)
+- **Supply chain**: `cargo-deny`, `cargo-audit` weekly, CycloneDX SBOM, TruffleHog scan
+- **No external services required** for library use; `settly` optionally connects to PostgreSQL (via `sqlx`) and Redis when those features are enabled
 
-## Key Features
+## Roadmap (not yet implemented)
 
-- Local-first configuration with team sync support
-- Feature flag lifecycle management (create, enable, disable, rollback)
-- Secret value storage with encryption at rest
-- Version inspection and rollout state tracking
-- Comprehensive audit trail with change history
-- Point-in-time restore capabilities
-- Interactive terminal UI (`phenoctl tui`)
-- CLI-first workflows with shell completion
-- SQLite backend with auto-migration
-- Zero external service dependencies
+The following are planned but absent from the current codebase:
+
+- `phenoctl` full feature-flag/secrets/version CLI (`clap` + `ratatui` TUI)
+- SQLite-backed audit trail and point-in-time restore
+- Shell completion generation
+- Go/Python bindings
 
 ## Quick Start
 
 ```bash
-# Clone repository
 git clone https://github.com/KooshaPari/Configra.git
 cd Configra
-
-# Review governance
-cat CLAUDE.md
 
 # Build all crates
 cargo build --workspace
 
-# Install CLI tool
-cargo install --path pheno-cli
-
-# Configure application settings
-phenoctl config set app.name "My Application"
-phenoctl config set app.version "1.0.0"
-
-# Manage feature flags
-phenoctl flags create dark-mode --description "Enable dark mode"
-phenoctl flags enable dark-mode
-phenoctl flags status
-
-# Manage secrets
-phenoctl secrets set API_KEY
-phenoctl secrets set DATABASE_URL
-
-# Check versions
-phenoctl version show
-
-# Interactive TUI
-phenoctl tui
-
 # Run tests
 cargo test --workspace
+
+# Health/version CLI (the only CLI currently available)
+cargo run -p configra-ops -- health
+cargo run -p configra-ops -- version
+
+# Use pheno-config in your project
+# Add to Cargo.toml:
+#   pheno-config = { git = "https://github.com/KooshaPari/Configra" }
 ```
 
 ## Project Structure
@@ -106,32 +109,16 @@ cargo test --workspace
 ```
 Configra/
 ├── crates/
-│   ├── pheno-core/                 # Core types and traits
-│   │   ├── lib.rs
-│   │   └── models.rs               # ConfigEntry, FeatureFlag, etc.
-│   ├── pheno-db/                   # SQLite persistence
-│   │   ├── lib.rs
-│   │   ├── store.rs                # CRUD operations
-│   │   ├── migrations.rs           # Schema management
-│   │   └── audit.rs                # Audit trail
-│   ├── pheno-crypto/               # AES-256-GCM encryption
-│   │   ├── lib.rs
-│   │   └── cipher.rs
-│   └── pheno-cli/                  # CLI and TUI
-│       ├── main.rs                 # Entry point
-│       ├── commands/               # Command handlers
-│       ├── tui/                    # Terminal UI
-│       └── shell/                  # Shell completions
-├── docs/
-│   ├── ARCHITECTURE.md             # System design
-│   ├── QUICKSTART.md               # Getting started
-│   ├── GUIDE.md                    # Usage guide
-│   └── API.md                      # API reference
-├── tests/
-│   ├── integration/                # Integration tests
-│   └── e2e/                        # End-to-end tests
-├── Cargo.toml                      # Workspace manifest
-└── Cargo.lock                      # Dependency lock
+│   ├── pheno-config/              # Typed Config + env/TOML/builder loading
+│   ├── settly/                    # Settings lifecycle + encryption-at-rest + hot-reload
+│   ├── config-schema/             # JSON schema validation primitives
+│   ├── phenotype-config-loader/   # Generic JSON/TOML file loaders
+│   └── configra-ops/              # Observability primitives + health CLI binary
+├── typescript/packages/conft/     # TS edge layer (drained from Conft)
+├── ABSORBED-FROM/                 # Index of 8 source repos absorbed here
+├── docs/migrations/               # Per-source migration notes
+├── Cargo.toml                     # Workspace manifest
+└── Cargo.lock                     # Dependency lock
 ```
 
 ## Tier-2 Substrate Layout (T16, 2026-06-20)

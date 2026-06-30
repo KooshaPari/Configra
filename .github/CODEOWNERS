@@ -1,0 +1,21 @@
+# CODEOWNERS — Configra workspace
+# Phenotype-org governance; see CLAUDE.md for agent-only-maintenance note.
+
+# Default: repo owner reviews everything
+*                           @KooshaPari
+
+# Workspace-level config and CI
+/Cargo.toml                 @KooshaPari
+/Cargo.lock                 @KooshaPari
+/deny.toml                  @KooshaPari
+/.github/                   @KooshaPari
+
+# Per-crate ownership mirrors sub-crate AGENTS.md files
+/crates/pheno-config/       @KooshaPari
+/crates/settly/             @KooshaPari
+/crates/config-schema/      @KooshaPari
+/crates/phenotype-config-loader/ @KooshaPari
+/crates/configra-ops/       @KooshaPari
+
+# TypeScript edge layer
+/typescript/                @KooshaPari
