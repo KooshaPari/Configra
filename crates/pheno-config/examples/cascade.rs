@@ -20,7 +20,7 @@
 //! Try overrides:
 //!   PHENO_CONFIG_PORT=9090 cargo run --example cascade
 
-use pheno_config::{load_from_toml_file, Config, ConfigError};
+use pheno_config::{load_from_toml_file, new_secret, Config, ConfigError};
 
 /// Load layer 2/3/4 with cascade semantics: try each TOML path in
 /// order, merging successive loads onto the previous config. Missing
@@ -55,13 +55,12 @@ fn load_cascade(paths: &[&std::path::Path]) -> Result<Option<Config>, ConfigErro
 /// in `main` keeps file values where the env is silent.
 fn load_env_partial() -> Result<Config, ConfigError> {
     // The public `load_from_env` requires URL and DB_PATH. To get a
-    // partial (overlay-only) view we synthesise the same shape from
-    // the public surface by attempting the full load and on a
-    // missing-field error constructing a stub. This mirrors what
-    // `combine` does internally.
-    match pheno_config::load_from_env("PHENO_CONFIG") {
-        Ok(cfg) => Ok(cfg),
-        Err(_) => Ok(Config {
+    // partial (overlay-only) view we synthesize the same shape from
+    // the public surface by attempting the full load and on error
+    // constructing a stub. This mirrors what `combine` does
+    // internally while tolerating missing required fields.
+    pheno_config::load_from_env("PHENO_CONFIG").or_else(|_| {
+        Ok(Config {
             url: std::env::var("PHENO_CONFIG_URL").unwrap_or_default(),
             port: std::env::var("PHENO_CONFIG_PORT")
                 .ok()
@@ -76,9 +75,12 @@ fn load_env_partial() -> Result<Config, ConfigError> {
                 .filter(|s| !s.is_empty())
                 .map(str::to_owned)
                 .collect(),
-            secret_value: None,
-        }),
-    }
+            secret_value: std::env::var("PHENO_CONFIG_SECRET_TOKEN")
+                .ok()
+                .filter(|value| !value.is_empty())
+                .map(new_secret),
+        })
+    })
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

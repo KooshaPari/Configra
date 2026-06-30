@@ -6,6 +6,7 @@ members = [
     "crates/config-schema",
     "crates/phenotype-config-loader",
     "crates/configra-ops",
+    "crates/phenoctl",
 ]
 
 [workspace.package]

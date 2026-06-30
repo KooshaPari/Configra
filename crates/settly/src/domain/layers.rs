@@ -144,6 +144,11 @@ impl LayerStack {
     pub fn is_empty(&self) -> bool {
         self.layers.is_empty()
     }
+
+    /// Return layers in merge order.
+    pub fn layers(&self) -> &[Layer] {
+        &self.layers
+    }
 }
 
 #[cfg(test)]

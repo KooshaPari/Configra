@@ -24,6 +24,8 @@ use aes_gcm::{
     Aes256Gcm, Key, Nonce,
 };
 use argon2::{Algorithm, Argon2, Params, Version};
+#[cfg(test)]
+use base64ct::{Base64, Encoding};
 use rand::{rngs::OsRng, RngCore};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
@@ -68,7 +70,7 @@ pub struct EncryptedEnvelope {
 impl EncryptedEnvelope {
     /// Magic header — first 4 bytes of the .enc file. Lets us detect a corrupt
     /// file vs a non-encrypted one without parsing the whole body.
-    pub const MAGIC: [u8; 4] = [b'C', b'F', b'G', b'1'];
+    pub const MAGIC: [u8; 4] = *b"CFG1";
 
     pub fn encode(&self) -> Vec<u8> {
         let mut out = Vec::with_capacity(4 + SALT_LEN + NONCE_LEN + self.ciphertext.len());
@@ -318,10 +320,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use base64ct::{Base64, Encoding};
     use serde::{Deserialize, Serialize};
     use tempfile::TempDir;
+
+    use super::*;
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     struct SampleCfg {
