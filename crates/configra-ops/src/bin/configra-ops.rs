@@ -48,7 +48,13 @@ fn main() -> ExitCode {
                     .map(|v| v == "json")
                     .unwrap_or(false);
             if emit_json {
-                println!("{}", report.to_json().expect("serialize health report"));
+                match report.to_json() {
+                    Ok(json) => println!("{json}"),
+                    Err(e) => {
+                        eprintln!("error: failed to serialize health report: {e}");
+                        return ExitCode::from(1);
+                    }
+                }
             } else if report.status == configra_ops::HealthStatus::Healthy {
                 println!("ok");
             } else {

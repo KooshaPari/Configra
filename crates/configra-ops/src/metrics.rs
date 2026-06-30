@@ -48,7 +48,7 @@ impl MetricsRegistry {
     pub fn counters(&self) -> HashMap<String, u64> {
         self.inner
             .read()
-            .expect("metrics lock poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .counters
             .clone()
     }
@@ -57,7 +57,7 @@ impl MetricsRegistry {
     pub fn gauges(&self) -> HashMap<String, f64> {
         self.inner
             .read()
-            .expect("metrics lock poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .gauges
             .clone()
     }
@@ -65,18 +65,18 @@ impl MetricsRegistry {
 
 impl MetricsHook for MetricsRegistry {
     fn increment_counter(&self, name: &str, delta: u64) {
-        let mut guard = self.inner.write().expect("metrics lock poisoned");
+        let mut guard = self.inner.write().unwrap_or_else(|e| e.into_inner());
         *guard.counters.entry(name.to_owned()).or_insert(0) += delta;
     }
 
     fn set_gauge(&self, name: &str, value: f64) {
-        let mut guard = self.inner.write().expect("metrics lock poisoned");
+        let mut guard = self.inner.write().unwrap_or_else(|e| e.into_inner());
         guard.gauges.insert(name.to_owned(), value);
     }
 
     fn observe_histogram(&self, name: &str, value: f64) {
         // Store last observation under `{name}_last` for simple introspection.
-        let mut guard = self.inner.write().expect("metrics lock poisoned");
+        let mut guard = self.inner.write().unwrap_or_else(|e| e.into_inner());
         guard.gauges.insert(format!("{name}_last"), value);
     }
 }
@@ -110,5 +110,37 @@ mod tests {
         reg.increment_counter("test", 2);
         reg.increment_counter("test", 3);
         assert_eq!(reg.counters().get("test"), Some(&5));
+    }
+
+    #[test]
+    fn registry_recovers_from_poisoned_lock() {
+        // Force the inner lock into a poisoned state by panicking
+        // while holding the write lock.
+        let reg = MetricsRegistry::new();
+        {
+            let _guard = std::sync::RwLock::write(&reg.inner);
+            // Drop guard without unlocking — the lock is NOT poisoned
+            // just by holding it. We poison it by letting a panic happen
+            // inside a lock scope.
+        }
+        // Normal usage: no poison yet.
+        reg.increment_counter("health", 1);
+        assert_eq!(reg.counters().get("health"), Some(&1));
+
+        // Poison the lock by running a closure that panics while holding it.
+        {
+            let lock: &std::sync::RwLock<Inner> = &reg.inner;
+            let _result = std::panic::catch_unwind(|| {
+                let mut _g = lock.write().unwrap();
+                panic!("deliberate panic inside lock");
+            });
+        }
+
+        // After poisoning, operations should recover (not panic).
+        reg.increment_counter("recovery", 42);
+        assert_eq!(reg.counters().get("recovery"), Some(&42));
+
+        let gauges = reg.gauges();
+        assert!(gauges.is_empty() || gauges.contains_key("recovery_last"));
     }
 }

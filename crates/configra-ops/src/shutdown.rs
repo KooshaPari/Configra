@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use tokio::signal;
 use tokio::time;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use crate::metrics::{self, names, MetricsHook, NoopMetricsHook};
 
@@ -30,17 +30,26 @@ impl Default for ShutdownConfig {
 /// Wait for OS shutdown signal (Ctrl+C or SIGTERM).
 pub async fn shutdown_signal() {
     let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
+        match signal::ctrl_c().await {
+            Ok(()) => {}
+            Err(e) => {
+                error!(target: "configra_ops", error = %e, "failed to install Ctrl+C handler; falling back to indefinite wait");
+                std::future::pending::<()>().await;
+            }
+        }
     };
 
     #[cfg(unix)]
     let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install SIGTERM handler")
-            .recv()
-            .await;
+        match signal::unix::signal(signal::unix::SignalKind::terminate()) {
+            Ok(mut sig) => {
+                sig.recv().await;
+            }
+            Err(e) => {
+                error!(target: "configra_ops", error = %e, "failed to install SIGTERM handler; falling back to indefinite wait");
+                std::future::pending::<()>().await;
+            }
+        }
     };
 
     #[cfg(not(unix))]

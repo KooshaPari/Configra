@@ -332,6 +332,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64ct::{Base64, Encoding};
     use serde::{Deserialize, Serialize};
     use tempfile::TempDir;
 

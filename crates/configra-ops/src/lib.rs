@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! Observability and operations primitives for Configra services.
 //!
 //! Additive substrate for audit areas G (Observability) and K (Ops):
