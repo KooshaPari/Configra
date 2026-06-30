@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! # pheno-config
 //!
 //! Canonical typed-configuration loader for the `pheno-*` fleet.

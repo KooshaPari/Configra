@@ -90,7 +90,7 @@ impl Source for EnvSource {
                 if !key.starts_with(prefix) {
                     continue;
                 }
-                let key = key.strip_prefix(prefix).unwrap().to_string();
+                let key = key.strip_prefix(prefix).unwrap_or(key.as_str()).to_string();
                 let key = key.to_lowercase().replace('_', ".");
                 config.set(key, value);
             } else {

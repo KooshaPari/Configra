@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! Configuration loading utilities for the Phenotype ecosystem.
 //!
 //! Absorbed from `KooshaPari/phenotype-config` per ADR-031 (L5-110).

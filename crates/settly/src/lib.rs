@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! Configuration management framework.
 //!
 //! # Architecture
