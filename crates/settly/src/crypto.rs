@@ -127,10 +127,7 @@ pub fn encrypt<T: Serialize>(
     let plaintext =
         serde_json::to_vec(payload).map_err(|e| ConfigCryptoError::Encrypt(e.to_string()))?;
     let ciphertext = cipher
-        .encrypt(
-            nonce,
-            Payload { msg: &plaintext, aad },
-        )
+        .encrypt(nonce, Payload { msg: &plaintext, aad })
         .map_err(|e| ConfigCryptoError::Encrypt(e.to_string()))?;
     Ok(EncryptedEnvelope { salt, nonce: nonce_bytes, ciphertext, aad: aad.to_vec() })
 }
@@ -145,10 +142,7 @@ pub fn decrypt<T: DeserializeOwned>(
     let cipher = Aes256Gcm::new(key);
     let nonce = Nonce::from_slice(&env.nonce);
     let plaintext = cipher
-        .decrypt(
-            nonce,
-            Payload { msg: &env.ciphertext, aad: &env.aad },
-        )
+        .decrypt(nonce, Payload { msg: &env.ciphertext, aad: &env.aad })
         .map_err(|e| ConfigCryptoError::Decrypt(e.to_string()))?;
     serde_json::from_slice(&plaintext).map_err(|e| ConfigCryptoError::Decrypt(e.to_string()))
 }
@@ -263,7 +257,9 @@ where
                 let Some(_ev) = raw_rx.recv().await else { break };
                 let mut latest: Option<notify::Event> = None;
                 loop {
-                    match tokio::time::timeout(std::time::Duration::from_millis(250), raw_rx.recv()).await {
+                    match tokio::time::timeout(std::time::Duration::from_millis(250), raw_rx.recv())
+                        .await
+                    {
                         Ok(Some(ev)) => latest = Some(ev),
                         Ok(None) => return,
                         Err(_) => break,
@@ -287,13 +283,7 @@ where
         });
 
         Ok((
-            Self {
-                path,
-                passphrase: passphrase.to_vec(),
-                tx,
-                _watcher: watcher,
-                current,
-            },
+            Self { path, passphrase: passphrase.to_vec(), tx, _watcher: watcher, current },
             initial,
         ))
     }
@@ -311,10 +301,7 @@ where
         let new_cfg: T = decrypt_from_file(&self.path, &self.passphrase)?;
         let new_arc = Arc::new(new_cfg);
         *self.current.write() = new_arc.clone();
-        let _ = self.tx.send(ReloadEvent {
-            config: new_arc,
-            reloaded_at: chrono::Utc::now(),
-        });
+        let _ = self.tx.send(ReloadEvent { config: new_arc, reloaded_at: chrono::Utc::now() });
         Ok(())
     }
 
@@ -332,6 +319,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64ct::{Base64, Encoding};
     use serde::{Deserialize, Serialize};
     use tempfile::TempDir;
 
@@ -416,7 +404,12 @@ mod tests {
         // Cross-AAD: decrypting env_a with aad-B should fail. We test by
         // trying to decrypt with a constructed envelope using env_a.ciphertext
         // but env_b.aad — which AES-GCM rejects.
-        let cross = EncryptedEnvelope { salt: env_a.salt, nonce: env_a.nonce, ciphertext: env_a.ciphertext, aad: env_b.aad.clone() };
+        let cross = EncryptedEnvelope {
+            salt: env_a.salt,
+            nonce: env_a.nonce,
+            ciphertext: env_a.ciphertext,
+            aad: env_b.aad.clone(),
+        };
         let result: Result<SampleCfg, _> = decrypt(b"pw", &cross);
         assert!(result.is_err());
     }

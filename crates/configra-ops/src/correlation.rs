@@ -38,7 +38,7 @@ impl CorrelationId {
         std::env::var("CONFIGRA_CORRELATION_ID")
             .ok()
             .and_then(|v| Self::parse(&v))
-            .unwrap_or_else(Self::new)
+            .unwrap_or_default()
     }
 
     /// Header name for HTTP propagation (default `X-Correlation-ID`).

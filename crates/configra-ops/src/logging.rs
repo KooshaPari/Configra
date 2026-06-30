@@ -2,8 +2,8 @@
 
 use std::io;
 
-use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
