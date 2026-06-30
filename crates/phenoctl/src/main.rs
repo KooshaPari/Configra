@@ -143,7 +143,7 @@ async fn main() -> Result<()> {
         Command::Validate { file, env, schema } => {
             let config = load_config(&file, env, &[]).await?;
             let schema = read_schema(schema)?;
-            let payload = flatten_config_to_value(&config);
+            let payload = flatten_config_for_schema(&flatten_config_to_value(&config));
             schema.validate(&payload)?;
             println!("valid");
             Ok(())
@@ -169,7 +169,7 @@ async fn main() -> Result<()> {
         } => {
             let payload: Value = decrypt_from_file::<Value>(&input, passphrase.as_bytes())
                 .context("decrypt payload")?;
-            let rendered = serde_json::to_string_pretty(&payload)?;
+            let rendered = serde_json::to_string(&payload)?;
             if let Some(path) = output {
                 std::fs::write(path, rendered).context("write decrypted payload")?;
             } else {
@@ -317,6 +317,35 @@ fn flatten_config_to_value(config: &Config) -> Value {
         }
     }
     root
+}
+
+fn flatten_for_schema(value: &Value) -> Value {
+    if let Value::Object(root) = value {
+        let mut out = Map::new();
+        for (key, nested) in root {
+            flatten_for_schema_recursive(&key.to_string(), nested, &mut out);
+        }
+        Value::Object(out)
+    } else {
+        value.clone()
+    }
+}
+
+fn flatten_for_schema_recursive(prefix: &str, value: &Value, out: &mut Map<String, Value>) {
+    if let Value::Object(map) = value {
+        out.insert(prefix.to_string(), value.clone());
+        for (key, nested) in map {
+            let child = format!("{prefix}.{key}");
+            flatten_for_schema_recursive(&child, nested, out);
+        }
+        return;
+    }
+
+    out.insert(prefix.to_string(), value.clone());
+}
+
+fn flatten_config_for_schema(value: &Value) -> Value {
+    flatten_for_schema(value)
 }
 
 fn insert_path(target: &mut Value, path: &str, value: Value) {
