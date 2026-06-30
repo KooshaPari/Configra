@@ -13,10 +13,19 @@ fn get_reads_merged_config() -> Result<(), Box<dyn std::error::Error>> {
     fs::write(&overlay, r#"{"service":{"url":"https://overlay.example"}}"#)?;
 
     let assert = Command::cargo_bin("phenoctl")?
-        .args(["get", "service.url", "--file", base.to_str().unwrap(), "--file", overlay.to_str().unwrap()])
+        .args([
+            "get",
+            "service.url",
+            "--file",
+            base.to_str().unwrap(),
+            "--file",
+            overlay.to_str().unwrap(),
+        ])
         .assert();
 
-    assert.success().stdout(predicate::str::contains("https://overlay.example"));
+    assert
+        .success()
+        .stdout(predicate::str::contains("https://overlay.example"));
     Ok(())
 }
 
@@ -36,7 +45,10 @@ fn set_updates_value_and_prints_json() -> Result<(), Box<dyn std::error::Error>>
         ])
         .assert();
 
-    assert.success().stdout(predicate::str::contains("\"service\":")).stdout(predicate::str::contains("8080"));
+    assert
+        .success()
+        .stdout(predicate::str::contains("\"service\":"))
+        .stdout(predicate::str::contains("8080"));
     Ok(())
 }
 
@@ -45,7 +57,10 @@ fn validate_schema_pass_and_fail() -> Result<(), Box<dyn std::error::Error>> {
     let root = tempdir()?;
     let config = root.path().join("config.json");
     let schema = root.path().join("schema.json");
-    fs::write(&config, r#"{"service":{"url":"https://base.example","enabled":true}}"#)?;
+    fs::write(
+        &config,
+        r#"{"service":{"url":"https://base.example","enabled":true}}"#,
+    )?;
     fs::write(
         &schema,
         json!({
@@ -58,13 +73,25 @@ fn validate_schema_pass_and_fail() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     let ok = Command::cargo_bin("phenoctl")?
-        .args(["validate", "--file", config.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+        .args([
+            "validate",
+            "--file",
+            config.to_str().unwrap(),
+            "--schema",
+            schema.to_str().unwrap(),
+        ])
         .assert();
     ok.success().stdout(predicate::str::contains("valid"));
 
     fs::write(&config, r#"{"service":{"enabled":true}}"#)?;
     let bad = Command::cargo_bin("phenoctl")?
-        .args(["validate", "--file", config.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+        .args([
+            "validate",
+            "--file",
+            config.to_str().unwrap(),
+            "--schema",
+            schema.to_str().unwrap(),
+        ])
         .assert();
     bad.failure();
     Ok(())
@@ -116,7 +143,13 @@ fn layers_prints_merge_order() -> Result<(), Box<dyn std::error::Error>> {
     fs::write(&second, r#"{"a":2}"#)?;
 
     let assert = Command::cargo_bin("phenoctl")?
-        .args(["layers", "--file", first.to_str().unwrap(), "--file", second.to_str().unwrap()])
+        .args([
+            "layers",
+            "--file",
+            first.to_str().unwrap(),
+            "--file",
+            second.to_str().unwrap(),
+        ])
         .assert();
 
     assert
@@ -156,6 +189,8 @@ fn watch_once_exits_with_initial_payload() -> Result<(), Box<dyn std::error::Err
         ])
         .assert();
 
-    assert.success().stdout(predicate::str::contains("\"ok\": true"));
+    assert
+        .success()
+        .stdout(predicate::str::contains("\"ok\": true"));
     Ok(())
 }

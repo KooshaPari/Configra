@@ -1,9 +1,6 @@
 //! `phenoctl` CLI backed by the real Configra runtime library.
 
-use std::path::PathBuf;
-use std::process::ExitCode;
-
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
 use config_schema::ConfigSchema;
 use serde::{Deserialize, Serialize};
@@ -11,7 +8,8 @@ use serde_json::{self, Map, Value};
 use settly::adapters::sources::{CliSource, EnvSource, FileSource};
 use settly::application::builder::ConfigBuilder;
 use settly::crypto::{decrypt_from_file, encrypt, HotReloader};
-use settly::domain::{Config, ConfigValue, Layer, LayerPriority, LayerStack};
+use settly::domain::{Config, ConfigValue, Layer, LayerPriority, LayerStack, Source};
+use std::path::PathBuf;
 use tokio::sync::broadcast;
 
 #[derive(Debug, Parser)]
@@ -112,17 +110,25 @@ fn default_type_hint() -> String {
 }
 
 #[tokio::main]
-async fn main() -> ExitCode {
+async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let result = match cli.command {
         Command::Get { key, file, env } => {
             let config = load_config(&file, env, &[]).await?;
-            let value = config.get(&key).ok_or_else(|| anyhow!("missing key: {key}"))?;
-            println!("{}", config_value_to_json(value).to_string());
+            let value = config
+                .get(&key)
+                .ok_or_else(|| anyhow!("missing key: {key}"))?;
+            println!("{}", config_value_to_json(value));
             Ok(())
         }
-        Command::Set { key, val, file, env, output } => {
+        Command::Set {
+            key,
+            val,
+            file,
+            env,
+            output,
+        } => {
             let mut config = load_config(&file, env, &[]).await?;
             config.set(key, parse_value(&val));
             let merged = flatten_config_to_value(&config);
@@ -150,8 +156,8 @@ async fn main() -> ExitCode {
         } => {
             let raw = std::fs::read_to_string(&input).context("read plaintext input")?;
             let payload: Value = serde_json::from_str(&raw).unwrap_or(Value::String(raw));
-            let envelope =
-                encrypt(passphrase.as_bytes(), &payload, aad.as_bytes()).context("encrypt payload")?;
+            let envelope = encrypt(passphrase.as_bytes(), &payload, aad.as_bytes())
+                .context("encrypt payload")?;
             let bytes = envelope.encode();
             std::fs::write(&output, bytes).context("write encrypted payload")?;
             Ok(())
@@ -161,8 +167,8 @@ async fn main() -> ExitCode {
             output,
             passphrase,
         } => {
-            let payload: Value =
-                decrypt_from_file::<Value>(&input, passphrase.as_bytes()).context("decrypt payload")?;
+            let payload: Value = decrypt_from_file::<Value>(&input, passphrase.as_bytes())
+                .context("decrypt payload")?;
             let rendered = serde_json::to_string_pretty(&payload)?;
             if let Some(path) = output {
                 std::fs::write(path, rendered).context("write decrypted payload")?;
@@ -171,7 +177,11 @@ async fn main() -> ExitCode {
             }
             Ok(())
         }
-        Command::Watch { file, passphrase, once } => {
+        Command::Watch {
+            file,
+            passphrase,
+            once,
+        } => {
             let (watcher, current) =
                 HotReloader::<Value>::open(&file, passphrase.as_bytes()).context("start watch")?;
             let rendered = serde_json::to_string_pretty(&current)?;
@@ -210,10 +220,10 @@ async fn main() -> ExitCode {
     };
 
     match result {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(()) => Ok(()),
         Err(err) => {
             eprintln!("{err}");
-            ExitCode::from(1)
+            Err(err)
         }
     }
 }
@@ -242,7 +252,7 @@ async fn load_config(
     }
     builder = builder.with_source(cli_source, LayerPriority::Cli).await?;
 
-    builder.build()
+    Ok(builder.build()?)
 }
 
 fn read_schema(path: PathBuf) -> Result<ConfigSchema> {
@@ -267,9 +277,13 @@ fn json_to_config_value(value: Value) -> ConfigValue {
         Value::Bool(value) => ConfigValue::Bool(value),
         Value::Number(value) => ConfigValue::Number(value.as_f64().unwrap_or(0.0)),
         Value::String(value) => ConfigValue::String(value),
-        Value::Array(items) => ConfigValue::Array(items.into_iter().map(json_to_config_value).collect()),
+        Value::Array(items) => {
+            ConfigValue::Array(items.into_iter().map(json_to_config_value).collect())
+        }
         Value::Object(map) => ConfigValue::Object(
-            map.into_iter().map(|(key, value)| (key, json_to_config_value(value))).collect(),
+            map.into_iter()
+                .map(|(key, value)| (key, json_to_config_value(value)))
+                .collect(),
         ),
     }
 }
@@ -278,11 +292,9 @@ fn config_value_to_json(value: &ConfigValue) -> Value {
     match value {
         ConfigValue::Null => Value::Null,
         ConfigValue::Bool(value) => Value::Bool(*value),
-        ConfigValue::Number(value) => {
-            Value::Number(
-                serde_json::Number::from_f64(*value).unwrap_or_else(|| serde_json::Number::from(0)),
-            )
-        }
+        ConfigValue::Number(value) => Value::Number(
+            serde_json::Number::from_f64(*value).unwrap_or_else(|| serde_json::Number::from(0)),
+        ),
         ConfigValue::String(value) => Value::String(value.clone()),
         ConfigValue::Array(values) => {
             Value::Array(values.iter().map(config_value_to_json).collect())
@@ -339,7 +351,10 @@ async fn build_layer_stack(paths: &[PathBuf], include_env: bool) -> Result<Layer
     }
 
     if include_env {
-        let env = EnvSource::new().load().await.context("load environment layer")?;
+        let env = EnvSource::new()
+            .load()
+            .await
+            .context("load environment layer")?;
         stack.add("env", LayerPriority::EnvVars, env);
     }
 
