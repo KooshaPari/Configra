@@ -19,6 +19,9 @@ permissions:
   contents: read
 
 jobs:
+  trace-gate:
+    name: FR Coverage Gate
+    uses: KooshaPari/phenotype-pm-core/.github/workflows/trace-gate.yml@main
   fmt:
     name: Format (rustfmt)
     runs-on: ubuntu-latest
