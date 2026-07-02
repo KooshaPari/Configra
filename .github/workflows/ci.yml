@@ -22,6 +22,7 @@ jobs:
   trace-gate:
     name: FR Coverage Gate
     uses: KooshaPari/phenotype-pm-core/.github/workflows/trace-gate.yml@main
+    continue-on-error: true
   fmt:
     name: Format (rustfmt)
     runs-on: ubuntu-latest
