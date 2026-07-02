@@ -486,6 +486,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::approx_constant)]
     fn parse_value_float() {
         assert!(matches!(parse_value("3.14"), ConfigValue::Number(n) if (n - 3.14).abs() < 1e-9));
     }
