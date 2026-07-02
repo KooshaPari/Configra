@@ -420,3 +420,107 @@ fn priority_for_file(index: usize) -> LayerPriority {
         _ => LayerPriority::EnvVars,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // --- default_type_hint ---
+
+    #[test]
+    fn default_type_hint_returns_string() {
+        assert_eq!(default_type_hint(), "string");
+    }
+
+    // --- layer_source ---
+
+    #[test]
+    fn layer_source_env_name() {
+        let layer = Layer::new("env", LayerPriority::EnvVars, Config::default());
+        assert_eq!(layer_source(&layer), "environment");
+    }
+
+    #[test]
+    fn layer_source_cli_name() {
+        let layer = Layer::new("cli", LayerPriority::Cli, Config::default());
+        assert_eq!(layer_source(&layer), "cli");
+    }
+
+    #[test]
+    fn layer_source_file_name() {
+        let layer = Layer::new("app.json", LayerPriority::Local, Config::default());
+        assert_eq!(layer_source(&layer), "file");
+    }
+
+    // --- priority_for_file ---
+
+    #[test]
+    fn priority_for_file_cycles_over_five_priorities() {
+        assert!(matches!(priority_for_file(0), LayerPriority::Default));
+        assert!(matches!(priority_for_file(1), LayerPriority::Env));
+        assert!(matches!(priority_for_file(2), LayerPriority::Home));
+        assert!(matches!(priority_for_file(3), LayerPriority::Local));
+        assert!(matches!(priority_for_file(4), LayerPriority::EnvVars));
+        // cycles
+        assert!(matches!(priority_for_file(5), LayerPriority::Default));
+    }
+
+    // --- parse_value ---
+
+    #[test]
+    fn parse_value_boolean_true() {
+        assert!(matches!(parse_value("true"), ConfigValue::Bool(true)));
+    }
+
+    #[test]
+    fn parse_value_boolean_false() {
+        assert!(matches!(parse_value("false"), ConfigValue::Bool(false)));
+    }
+
+    #[test]
+    fn parse_value_integer() {
+        assert!(
+            matches!(parse_value("42"), ConfigValue::Number(n) if (n - 42.0).abs() < f64::EPSILON)
+        );
+    }
+
+    #[test]
+    fn parse_value_float() {
+        assert!(matches!(parse_value("3.14"), ConfigValue::Number(n) if (n - 3.14).abs() < 1e-9));
+    }
+
+    #[test]
+    fn parse_value_string_fallback() {
+        assert!(matches!(parse_value("hello"), ConfigValue::String(ref s) if s == "hello"));
+    }
+
+    #[test]
+    fn parse_value_json_object() {
+        let v = parse_value(r#"{"a":1}"#);
+        assert!(matches!(v, ConfigValue::Object(_)));
+    }
+
+    // --- insert_path ---
+
+    #[test]
+    fn insert_path_flat_key() {
+        let mut root = json!({});
+        insert_path(&mut root, "key", json!("val"));
+        assert_eq!(root["key"], json!("val"));
+    }
+
+    #[test]
+    fn insert_path_nested_key() {
+        let mut root = json!({});
+        insert_path(&mut root, "a.b.c", json!(99));
+        assert_eq!(root["a"]["b"]["c"], json!(99));
+    }
+
+    #[test]
+    fn insert_path_overwrites_existing() {
+        let mut root = json!({"x": "old"});
+        insert_path(&mut root, "x", json!("new"));
+        assert_eq!(root["x"], json!("new"));
+    }
+}
