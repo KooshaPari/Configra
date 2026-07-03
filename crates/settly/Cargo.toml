@@ -29,7 +29,7 @@ anyhow = { workspace = true }
 # Utilities
 uuid = { workspace = true }
 chrono = { workspace = true }
-validator = { version = "0.18", features = ["derive"] }  # not in workspace
+validator = { version = "0.20", features = ["derive"] }  # not in workspace; bumped for GHSA-h97m-ww89-6jmq (idna < 1.0.0)
 
 # Encryption (AES-256-GCM + Argon2id KDF)
 aes-gcm = "0.10"
