@@ -31,7 +31,7 @@ pub use crypto::{
     ConfigCryptoError, EncryptedEnvelope, HotReloader, ReloadEvent, NONCE_LEN, SALT_LEN,
 };
 pub use domain::errors::ConfigError;
-pub use domain::{Config, ConfigValue, Layer, LayerPriority};
+pub use domain::{Config, ConfigPath, ConfigValue, Layer, LayerPriority, LayerStack};
 pub use domain::{
     DeadLetterEntry, DeadLetterQueue, IdempotencyKey, IdempotencyStore, SubmissionResult,
 };

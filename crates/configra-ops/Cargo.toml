@@ -18,12 +18,18 @@ path = "src/lib.rs"
 name = "configra-ops"
 path = "src/bin/configra-ops.rs"
 
+[[bin]]
+name = "phenoctl"
+path = "src/bin/phenoctl.rs"
+
 [dependencies]
 anyhow = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
+config-schema = { path = "../config-schema" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+settly = { path = "../settly" }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["signal", "time", "macros", "rt-multi-thread"] }
 tracing = { workspace = true }
@@ -31,4 +37,6 @@ tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
 tempfile = { workspace = true }
