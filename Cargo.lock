@@ -1621,6 +1621,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "phenoctl"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "config-schema",
+ "pheno-config",
+ "phenotype-config-loader",
+ "serde",
+ "serde_json",
+ "settly",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml",
+]
+
+[[package]]
 name = "phenotype-config-loader"
 version = "0.4.0"
 dependencies = [

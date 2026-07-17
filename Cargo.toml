@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/settly",
     "crates/pheno-config",
+    "crates/phenoctl",
     "crates/config-schema",
     "crates/phenotype-config-loader",
     "crates/configra-ops",
