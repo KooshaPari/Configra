@@ -5,7 +5,7 @@
  */
 
 import { ConfigSource } from '../ports/config-source';
-import { ConfigEntry, ConfigValue } from '../domain/config';
+import { ConfigEntry, ConfigValue, ConfigValueSchema } from '../domain/config';
 
 /**
  * Environment variable config source.
@@ -58,15 +58,15 @@ export class EnvConfigSource implements ConfigSource {
   }
 
   private parseValue(value: string): ConfigValue {
-    // Try to parse as JSON for complex types
+    // Parse JSON only when it is one of the public ConfigValue shapes.
     try {
       const parsed = JSON.parse(value);
-      // Return original string if not a valid JSON type
-      if (typeof parsed === 'object' || Array.isArray(parsed)) {
-        return parsed;
+      const result = ConfigValueSchema.safeParse(parsed);
+      if (result.success) {
+        return result.data;
       }
     } catch {
-      // Not JSON, return as string
+      // Continue with scalar parsing.
     }
 
     // Try boolean
@@ -74,7 +74,8 @@ export class EnvConfigSource implements ConfigSource {
     if (value.toLowerCase() === 'false') return false;
 
     // Try number
-    if (!isNaN(Number(value))) return Number(value);
+    const number = Number(value);
+    if (value.trim() !== '' && Number.isFinite(number)) return number;
 
     // Return as string
     return value;

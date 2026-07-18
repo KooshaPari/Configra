@@ -44,12 +44,11 @@ export class FileConfigSource implements ConfigSource {
     return entry?.value;
   }
 
-  async set(key: string, value: ConfigValue): Promise<void> {
-    // Would need to read, modify, and write - simplified for example
-    throw new Error('File write not implemented - use ConfigManager');
+  async set(_key: string, _value: ConfigValue): Promise<void> {
+    throw new Error('File configuration sources are read-only');
   }
 
   isWritable(): boolean {
-    return true;
+    return false;
   }
 }

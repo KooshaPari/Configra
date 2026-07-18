@@ -1,0 +1,65 @@
+{
+  "minimumCoveragePercent": 85,
+  "requirements": [
+    {
+      "id": "FR-SCHEMA-001",
+      "source": "src/domain/config.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "validates every supported value shape and rejects unsupported shapes"
+    },
+    {
+      "id": "FR-SCHEMA-002",
+      "source": "src/domain/config.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "serializes validation errors without losing diagnostic context"
+    },
+    {
+      "id": "FR-SRC-001",
+      "source": "src/adapters/file-adapter.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "loads all JSON entries with file provenance"
+    },
+    {
+      "id": "FR-SRC-002",
+      "source": "src/adapters/file-adapter.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "reads named JSON values and enforces read-only behavior"
+    },
+    {
+      "id": "FR-SRC-003",
+      "source": "src/adapters/env-adapter.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "loads only prefixed environment values and normalizes keys"
+    },
+    {
+      "id": "FR-SRC-004",
+      "source": "src/adapters/env-adapter.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "parses supported environment value shapes without unsafe coercion"
+    },
+    {
+      "id": "FR-SRC-005",
+      "source": "src/adapters/env-adapter.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "reports absent environment values and rejects writes"
+    },
+    {
+      "id": "FR-MODEL-001",
+      "source": "src/domain/config.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "provides immutable lookups and detached snapshots"
+    },
+    {
+      "id": "FR-HEX-001",
+      "source": "src/ports/config-source.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "adapters satisfy the asynchronous source port"
+    },
+    {
+      "id": "FR-PKG-001",
+      "source": "src/index.ts",
+      "test": "tests/e2e/consumer-journey.test.ts",
+      "case": "exports the documented API from the built package"
+    }
+  ]
+}

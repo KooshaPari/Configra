@@ -118,11 +118,17 @@ export class ConfigSourceNotFoundError extends Error {
  * Immutable configuration snapshot.
  */
 export class ImmutableConfig {
+  public readonly entries: ReadonlyMap<string, ConfigValue>;
+  public readonly sources: ReadonlyArray<string>;
+
   constructor(
-    public readonly entries: ReadonlyMap<string, ConfigValue>,
-    public readonly sources: ReadonlyArray<string>,
+    entries: ReadonlyMap<string, ConfigValue>,
+    sources: ReadonlyArray<string>,
     public readonly version: string
-  ) {}
+  ) {
+    this.entries = new Map(entries);
+    this.sources = [...sources];
+  }
 
   get(key: string): ConfigValue | undefined {
     return this.entries.get(key);

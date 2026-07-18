@@ -7,18 +7,22 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "files": ["dist", "src"],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "vitest run tests/e2e/",
-    "lint": "eslint src --ext .ts",
+    "traceability": "node scripts/check-traceability.mjs",
+    "pack:smoke": "bun run build && npm pack --dry-run",
+    "quality": "bun run lint && bun run typecheck && bun run build && bun run test:coverage && bun run test:e2e && bun run traceability && bun run pack:smoke",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -35,10 +39,12 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.10.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/coverage-v8": "4.1.10",
     "eslint": "^8.55.0",
     "tsup": "^8.0.1",
     "typescript": "^5.3.2",
-    "vitest": "^4.1.8",
+    "vitest": "4.1.10",
     "vitepress": "^1.6.3",
     "vue": "^3.5.13",
     "vitepress-plugin-mermaid": "^2.0.17",
