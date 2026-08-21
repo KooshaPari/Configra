@@ -97,4 +97,55 @@ mod tests {
         let result = load_json::<TestConfig>(Path::new("/nonexistent.json"));
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_load_json_valid() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("pheno_cfg_json_valid.json");
+        std::fs::write(&path, r#"{"name":"valid","value":100}"#).unwrap();
+        let config = load_json::<TestConfig>(&path).unwrap();
+        assert_eq!(config.name, "valid");
+        assert_eq!(config.value, 100);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_load_json_invalid() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("pheno_cfg_json_invalid.json");
+        std::fs::write(&path, r#"{not valid json!!!}"#).unwrap();
+        let result = load_json::<TestConfig>(&path);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            ConfigLoadError::Parse(_) => {} // expected
+            other => panic!("expected Parse error, got {:?}", other),
+        }
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_load_toml_valid() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("pheno_cfg_toml_valid.toml");
+        std::fs::write(&path, "name = \"valid\"\nvalue = 200").unwrap();
+        let config = load_toml::<TestConfig>(&path).unwrap();
+        assert_eq!(config.name, "valid");
+        assert_eq!(config.value, 200);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_load_toml_invalid() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("pheno_cfg_toml_invalid.toml");
+        // Write something that looks like TOML but has a type mismatch
+        std::fs::write(&path, "name = 123\nvalue = \"not-an-int\"").unwrap();
+        let result = load_toml::<TestConfig>(&path);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            ConfigLoadError::Parse(_) => {} // expected
+            other => panic!("expected Parse error, got {:?}", other),
+        }
+        std::fs::remove_file(&path).ok();
+    }
 }

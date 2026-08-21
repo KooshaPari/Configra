@@ -185,4 +185,71 @@ mod tests {
         assert_eq!(report.status, HealthStatus::Unhealthy);
         assert_eq!(report.exit_code(), 1);
     }
+
+    #[test]
+    fn liveness_always_healthy() {
+        let report = liveness("1.2.3");
+        assert_eq!(report.status, HealthStatus::Healthy);
+        assert_eq!(report.exit_code(), 0);
+        assert_eq!(report.version, "1.2.3");
+        assert_eq!(report.checks.len(), 1);
+        assert_eq!(report.checks[0].name, "process");
+    }
+
+    #[test]
+    fn readiness_healthy_when_all_pass() {
+        let ws = WorkspaceCheck;
+        let checks: Vec<&dyn HealthCheck> = vec![&ws];
+        let report = readiness("0.1.0", &checks);
+        assert_eq!(report.status, HealthStatus::Healthy);
+        assert_eq!(report.exit_code(), 0);
+        assert_eq!(report.checks.len(), 1);
+        assert_eq!(report.checks[0].status, HealthStatus::Healthy);
+    }
+
+    #[test]
+    fn readiness_mixed_checks() {
+        struct Passing;
+        impl HealthCheck for Passing {
+            fn name(&self) -> &str { "passing" }
+            fn check(&self) -> Result<(), String> { Ok(()) }
+        }
+
+        let passing = Passing;
+        let failing = Failing;
+        let checks: Vec<&dyn HealthCheck> = vec![&passing, &failing];
+        let report = readiness("0.1.0", &checks);
+        assert_eq!(report.status, HealthStatus::Unhealthy);
+        assert_eq!(report.checks.len(), 2);
+        assert_eq!(report.checks[0].status, HealthStatus::Healthy);
+        assert_eq!(report.checks[1].status, HealthStatus::Unhealthy);
+    }
+
+    #[test]
+    fn health_report_json_roundtrip() {
+        let report = liveness("1.0.0");
+        let json = report.to_json().unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["status"], "healthy");
+        assert_eq!(parsed["version"], "1.0.0");
+        assert!(parsed["timestamp"].is_string());
+    }
+
+    #[test]
+    fn check_result_ok_has_healthy_status() {
+        let start = std::time::Instant::now();
+        let result = CheckResult::ok("test-check", start);
+        assert_eq!(result.status, HealthStatus::Healthy);
+        assert_eq!(result.name, "test-check");
+        assert!(result.message.is_none());
+    }
+
+    #[test]
+    fn check_result_fail_has_unhealthy_status() {
+        let start = std::time::Instant::now();
+        let result = CheckResult::fail("test-check", "something broke", start);
+        assert_eq!(result.status, HealthStatus::Unhealthy);
+        assert_eq!(result.name, "test-check");
+        assert_eq!(result.message.as_deref(), Some("something broke"));
+    }
 }

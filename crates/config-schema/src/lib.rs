@@ -211,4 +211,81 @@ mod tests {
 
         assert_eq!(schema.validate(&config), Ok(()));
     }
+
+    #[test]
+    fn test_schema_field_creation() {
+        let field = SchemaField::new("timeout", false, "integer");
+        assert_eq!(field.name, "timeout");
+        assert!(!field.required);
+        assert_eq!(field.type_hint, "integer");
+
+        let required_field = SchemaField::new("host", true, "string");
+        assert_eq!(required_field.name, "host");
+        assert!(required_field.required);
+        assert_eq!(required_field.type_hint, "string");
+    }
+
+    #[test]
+    fn test_schema_validation_pass() {
+        let schema = ConfigSchema::new()
+            .field("name", true, "string")
+            .field("port", true, "integer")
+            .field("debug", false, "boolean");
+
+        let config = json!({
+            "name": "my-app",
+            "port": 3000
+        });
+
+        assert!(schema.validate(&config).is_ok());
+    }
+
+    #[test]
+    fn test_schema_validation_fail() {
+        let schema = ConfigSchema::new()
+            .field("name", true, "string")
+            .field("port", true, "integer");
+
+        // "port" is required but missing
+        let config = json!({
+            "name": "my-app"
+        });
+
+        let err = schema.validate(&config).unwrap_err();
+        assert_eq!(err, SchemaError::MissingField("port".to_string()));
+    }
+
+    #[test]
+    fn test_schema_type_check() {
+        let schema = ConfigSchema::new()
+            .field("name", true, "string")
+            .field("port", true, "integer")
+            .field("debug", true, "boolean")
+            .field("ratio", true, "number");
+
+        // All types match
+        let valid = json!({
+            "name": "app",
+            "port": 8080,
+            "debug": true,
+            "ratio": 0.5
+        });
+        assert!(schema.validate(&valid).is_ok());
+
+        // Wrong type: port is a string, not integer
+        let invalid = json!({
+            "name": "app",
+            "port": "8080",
+            "debug": true,
+            "ratio": 0.5
+        });
+        let err = schema.validate(&invalid).unwrap_err();
+        match err {
+            SchemaError::WrongType { field, expected, .. } => {
+                assert_eq!(field, "port");
+                assert_eq!(expected, "integer");
+            }
+            other => panic!("expected WrongType, got {:?}", other),
+        }
+    }
 }

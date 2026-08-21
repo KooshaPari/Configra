@@ -111,4 +111,54 @@ mod tests {
         reg.increment_counter("test", 3);
         assert_eq!(reg.counters().get("test"), Some(&5));
     }
+
+    #[test]
+    fn registry_records_gauges() {
+        let reg = MetricsRegistry::new();
+        reg.set_gauge("cpu_usage", 72.5);
+        assert_eq!(reg.gauges().get("cpu_usage"), Some(&72.5));
+
+        // Overwrite with new value
+        reg.set_gauge("cpu_usage", 90.0);
+        assert_eq!(reg.gauges().get("cpu_usage"), Some(&90.0));
+    }
+
+    #[test]
+    fn registry_histogram_stores_last_observation() {
+        let reg = MetricsRegistry::new();
+        reg.observe_histogram("latency_ms", 42.0);
+        assert_eq!(reg.gauges().get("latency_ms_last"), Some(&42.0));
+
+        reg.observe_histogram("latency_ms", 100.0);
+        assert_eq!(reg.gauges().get("latency_ms_last"), Some(&100.0));
+    }
+
+    #[test]
+    fn registry_multiple_counters() {
+        let reg = MetricsRegistry::new();
+        reg.increment_counter("requests", 10);
+        reg.increment_counter("errors", 2);
+        reg.increment_counter("requests", 5);
+
+        let counters = reg.counters();
+        assert_eq!(counters.get("requests"), Some(&15));
+        assert_eq!(counters.get("errors"), Some(&2));
+    }
+
+    #[test]
+    fn noop_metrics_hook_does_not_panic() {
+        let noop = NoopMetricsHook;
+        noop.increment_counter("test", 1);
+        noop.set_gauge("test", 1.0);
+        noop.observe_histogram("test", 1.0);
+        // No-op hook should not store anything
+    }
+
+    #[test]
+    fn metric_name_constants() {
+        assert_eq!(names::CONFIG_LOAD_TOTAL, "configra_config_load_total");
+        assert_eq!(names::CONFIG_LOAD_ERRORS, "configra_config_load_errors_total");
+        assert_eq!(names::HEALTH_CHECK_TOTAL, "configra_health_check_total");
+        assert_eq!(names::SHUTDOWN_TOTAL, "configra_shutdown_total");
+    }
 }

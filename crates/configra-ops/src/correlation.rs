@@ -103,4 +103,59 @@ mod tests {
         let id = CorrelationId::parse("req-abc-123").expect("opaque id");
         assert_eq!(id.as_str(), "req-abc-123");
     }
+
+    #[test]
+    fn new_generates_unique_ids() {
+        let a = CorrelationId::new();
+        let b = CorrelationId::new();
+        assert_ne!(a.as_str(), b.as_str());
+    }
+
+    #[test]
+    fn default_also_generates_unique_id() {
+        let id = CorrelationId::default();
+        // Should be a valid UUID format
+        assert!(!id.as_str().is_empty());
+        assert_eq!(id.as_str().len(), 36); // UUID v4 is 36 chars
+    }
+
+    #[test]
+    fn parse_empty_returns_none() {
+        assert!(CorrelationId::parse("").is_none());
+        assert!(CorrelationId::parse("   ").is_none());
+    }
+
+    #[test]
+    fn parse_preserves_whitespace_stripped() {
+        let id = CorrelationId::parse("  req-123  ").expect("trimmed id");
+        assert_eq!(id.as_str(), "req-123");
+    }
+
+    #[test]
+    fn correlation_id_display() {
+        let id = CorrelationId::parse("test-id-42").unwrap();
+        let displayed = format!("{}", id);
+        assert_eq!(displayed, "test-id-42");
+    }
+
+    #[test]
+    fn correlation_id_equality_and_hash() {
+        let a = CorrelationId::parse("same-id").unwrap();
+        let b = CorrelationId::parse("same-id").unwrap();
+        let c = CorrelationId::parse("other-id").unwrap();
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+        // Can be used as HashMap key
+        let mut map = std::collections::HashMap::new();
+        map.insert(a.clone(), 1);
+        assert_eq!(map.get(&b), Some(&1));
+    }
+
+    #[test]
+    fn header_name_default() {
+        // In a clean env, the default header is X-Correlation-ID
+        // (We can't easily test env override here due to OnceLock caching.)
+        let name = CorrelationId::header_name();
+        assert!(!name.is_empty());
+    }
 }
